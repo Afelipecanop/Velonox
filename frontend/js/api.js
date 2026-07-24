@@ -30,7 +30,10 @@ async function apiFetch(endpoint, options = {}) {
         headers: { ...headers, ...options.headers }
     });
 
-    if (response.status === 401) {
+    if (response.status === 401 && token) {
+        // Solo redirige si ya había un token (sesión expirada/inválida). Un 401
+        // sin token (ej. login con credenciales incorrectas) no es una sesión
+        // que expiró, así que debe caer al throw de abajo en vez de recargar.
         removeToken();
         window.location.href = "/login.html";
         return;

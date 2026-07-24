@@ -212,6 +212,13 @@
   .alert-box.show{display:block;}
   .alert-box.error{background:rgba(192,57,43,0.08);color:#A93226;border:1px solid rgba(192,57,43,0.25);}
   .alert-box.info{background:rgba(29,122,79,0.08);color:#175C3C;border:1px solid rgba(29,122,79,0.25);}
+  .alert-box.shake{animation:shakeAlert .4s ease-in-out;}
+  @keyframes shakeAlert{
+    10%,90%{transform:translateX(-1px);}
+    20%,80%{transform:translateX(2px);}
+    30%,50%,70%{transform:translateX(-4px);}
+    40%,60%{transform:translateX(4px);}
+  }
 
   /* ---------- RIGHT: HERO ---------- */
   .panel-hero{
@@ -226,11 +233,6 @@
        stacking context; sin esto, algunos navegadores (Chrome/Safari) pintan
        el blend por fuera del border-radius del padre pese al overflow:hidden. */
     isolation:isolate;
-  }
-  .hero-image img{
-    width:100%;height:100%;object-fit:cover;opacity:.55;
-    mix-blend-mode:luminosity;
-    border-radius:inherit;
   }
   .hero-overlay{
     position:absolute;inset:0;
@@ -373,7 +375,6 @@
   <!-- RIGHT: HERO -->
   <section class="panel-hero">
     <div class="hero-image">
-      <img src="https://images.unsplash.com/photo-1584990347449-a8b1067c7423?w=1400&q=80" alt="">
       <div class="hero-overlay"></div>
       <div class="steam" style="left:38%;bottom:120px;">
         <span style="left:0;animation-delay:0s;"></span>
@@ -406,6 +407,14 @@
     const box = document.getElementById('form-alert');
     box.textContent = message;
     box.className = `alert-box show ${type}`;
+    if (type === 'error') {
+      // Reflow trick: sin esto, si el mensaje de error es idéntico al anterior
+      // (misma clase "shake" ya presente), el navegador no vuelve a disparar
+      // la animación y el usuario pierde la señal visual del segundo fallo.
+      box.classList.remove('shake');
+      void box.offsetWidth;
+      box.classList.add('shake');
+    }
   }
   function clearAlert() {
     const box = document.getElementById('form-alert');
