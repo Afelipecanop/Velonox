@@ -6,6 +6,8 @@
 
 Autenticación · Catálogo · Carrito · Checkout (registrado e invitado) · Pagos · Panel administrativo · CMS visual · Métricas de negocio
 
+### 🔗 [velonox.co](https://velonox.co)
+
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -13,7 +15,7 @@ Autenticación · Catálogo · Carrito · Checkout (registrado e invitado) · Pa
 [![Alembic](https://img.shields.io/badge/Alembic-Migrations-6BA539)](https://alembic.sqlalchemy.org/)
 [![Vanilla JS](https://img.shields.io/badge/Frontend-HTML%2FCSS%2FJS-F7DF1E?logo=javascript&logoColor=black)](#)
 [![Railway](https://img.shields.io/badge/Backend-Railway-0B0D0E?logo=railway&logoColor=white)](https://railway.app/)
-[![Cloudflare Pages](https://img.shields.io/badge/Frontend-Cloudflare%20Pages-F38020?logo=cloudflare&logoColor=white)](https://pages.cloudflare.com/)
+[![Cloudflare Pages](https://img.shields.io/badge/Frontend-Cloudflare%20Pages-F38020?logo=cloudflare&logoColor=white)](https://velonox.co)
 [![License](https://img.shields.io/badge/status-en%20desarrollo%20activo-yellow)](#)
 
 </div>
@@ -205,7 +207,7 @@ uvicorn main:app --reload
 ## ☁️ Despliegue
 
 - **Backend** → Railway
-- **Frontend** → Cloudflare Pages
+- **Frontend** → Cloudflare Pages ([velonox.co](https://velonox.co))
 - **Base de datos** → PostgreSQL gestionada por el entorno de ejecución del backend
 - **Seguridad** → CORS y políticas de acceso configuradas explícitamente para permitir solo los orígenes esperados
 

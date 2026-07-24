@@ -10,7 +10,7 @@ SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
-EMAILS_FROM = os.getenv("EMAILS_FROM", "Velonox <hola@velonox.com>")
+EMAILS_FROM = os.getenv("EMAILS_FROM", "Velonox <hola@velonox.co>")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://velonox.co")
 
 
@@ -175,7 +175,7 @@ def email_confirmacion_orden(to: str, nombre: str, order_id: str, items: list, t
               </table>
 
               <p style="font-size:12px;color:#B0BEB8;line-height:1.6;margin:0">
-                ¿Tienes dudas? Escríbenos por WhatsApp al +57 310 888 7296 o visita <a href="{FRONTEND_URL}/contacto.html" style="color:#1D7A4F">velonox.com/contacto</a>
+                ¿Tienes dudas? Escríbenos por WhatsApp al +57 310 888 7296 o visita <a href="{FRONTEND_URL}/contacto.html" style="color:#1D7A4F">velonox.co/contacto</a>
               </p>
             </td></tr>
 

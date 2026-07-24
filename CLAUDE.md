@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Velonox — an e-commerce store. FastAPI backend (Railway) + PostgreSQL, vanilla HTML/CSS/JS frontend (Cloudflare Pages, `e-commerce-con-fastapi-y-postgreqsl.pages.dev`), no build step or framework on either side.
+Velonox — an e-commerce store. FastAPI backend (Railway) + PostgreSQL, vanilla HTML/CSS/JS frontend (Cloudflare Pages, `velonox.co`), no build step or framework on either side.
 
 ## Commands
 
@@ -48,6 +48,8 @@ Sync SQLAlchemy 2.x (`database.py`) — **do not** introduce async ORM calls wit
 **Legacy, unrelated "variants" field — don't confuse with the above**: `models/product_page.py`'s `ProductPage.variants` (a JSON `Text` column, edited via `routes/product_pages.py`) is a *different*, older, dead concept (size/color option labels for a hand-authored page) with no admin editor ever built for it — it's always `[]` in practice. `product.html` used to render *that* field under a "variantes" label before 2026-07; it now renders the real `product.variants` (the `ProductVariant` list above) instead. If you see `page.variants` referenced anywhere, it's stale/vestigial, not the real variant system.
 
 **Security pattern to preserve** (see `docs/notes/proyecto.md`): never call external APIs (Bold, Dropi, Anthropic, TRM source) directly from the frontend — always proxy through the backend using the server's own `.env` keys. CORS uses explicit methods/headers, never `["*"]`. Internal errors (DB, payment gateway) are never surfaced verbatim to the client — return generic messages instead.
+
+**Canonical domain**: `velonox.co` (not `.com`) — used in `backend/main.py` CORS origins, `FRONTEND_URL` defaults (`auth.py`, `email.py`), transactional email sender/body text (`email.py`), and the default footer/contact/terms text seeded by `routes/layout.py` and `admin.html`'s block defaults. If you add a new place that hardcodes a store URL or contact email, use `.co` — a `.com`/`.co` mix was found and fixed across the backend in 2026-07 and is easy to reintroduce. Remember the `layout.py` seed caveat above: fixing the Python default doesn't retroactively fix pages that already have rows in `store_layout`.
 
 ### Frontend (`frontend/`)
 No bundler, no framework — plain `.html` files each with inline `<script>`/`<style>`, plus shared helpers in `frontend/js/`. All internal links and asset references (`href`/`src`) use absolute paths (leading `/`, e.g. `/js/api.js`, `/admin.html`) rather than relative ones — keep this convention when adding pages or scripts:

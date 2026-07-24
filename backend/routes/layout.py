@@ -184,7 +184,7 @@ DEFAULT_BLOCKS = [
         "config": {
             "store_name": "Velonox",
             "tagline": "Cocina de por vida.",
-            "email": "contacto@velonox.com",
+            "email": "contacto@velonox.co",
             "background_color": "#0F1A14",
             "text_color": "#94a3b8"
         }
@@ -301,7 +301,7 @@ CONTENT_PAGE_BLOCKS = {
             "config": {
                 "store_name": "Velonox",
                 "tagline": "Cocina de por vida.",
-                "email": "contacto@velonox.com"
+                "email": "contacto@velonox.co"
             }
         }
     ],
@@ -436,7 +436,7 @@ CONTENT_PAGE_BLOCKS = {
             "config": {
                 "store_name": "Velonox",
                 "tagline": "Cocina de por vida.",
-                "email": "contacto@velonox.com"
+                "email": "contacto@velonox.co"
             }
         }
     ],
@@ -638,7 +638,7 @@ CONTENT_PAGE_BLOCKS = {
             "config": {
                 "store_name": "Velonox",
                 "tagline": "Cocina de por vida.",
-                "email": "contacto@velonox.com"
+                "email": "contacto@velonox.co"
             }
         }
     ],
@@ -677,7 +677,7 @@ CONTENT_PAGE_BLOCKS = {
         <div class="tc-num">01</div>
         <h2 class="tc-title">Aceptación de términos</h2>
         <div class="tc-text">
-            <p>Al acceder y utilizar el sitio web de Velonox (velonox.com) y realizar una compra, aceptas estar sujeto a estos Términos y Condiciones. Si no estás de acuerdo con alguno de estos términos, te pedimos que no utilices nuestros servicios.</p>
+            <p>Al acceder y utilizar el sitio web de Velonox (velonox.co) y realizar una compra, aceptas estar sujeto a estos Términos y Condiciones. Si no estás de acuerdo con alguno de estos términos, te pedimos que no utilices nuestros servicios.</p>
             <p>Estos términos aplican a todos los visitantes, usuarios y personas que accedan o usen el servicio. Velonox se reserva el derecho de actualizar estos términos en cualquier momento, notificando los cambios en esta misma página.</p>
             <div class="highlight"><i class="ti ti-info-circle"></i><p>Al finalizar una compra, confirmas que eres mayor de 18 años o que cuentas con autorización de un adulto responsable, y que los datos que proporcionas son verídicos y completos.</p></div>
         </div>
@@ -808,7 +808,7 @@ CONTENT_PAGE_BLOCKS = {
             <p>Para cualquier consulta sobre estos términos, contáctanos:</p>
             <ul>
                 <li>WhatsApp: +57 310 888 7296</li>
-                <li>Formulario: <a href="contacto.html" style="color:#1D7A4F">velonox.com/contacto</a></li>
+                <li>Formulario: <a href="contacto.html" style="color:#1D7A4F">velonox.co/contacto</a></li>
             </ul>
         </div>
     </div>
@@ -829,7 +829,7 @@ CONTENT_PAGE_BLOCKS = {
             "config": {
                 "store_name": "Velonox",
                 "tagline": "Cocina de por vida.",
-                "email": "contacto@velonox.com"
+                "email": "contacto@velonox.co"
             }
         }
     ],
