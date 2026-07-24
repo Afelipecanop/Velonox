@@ -299,7 +299,7 @@
 <div class="breadcrumb">
     <a href="/index.html">Inicio</a>
     <span class="sep">›</span>
-    <a href="/index.html">Productos</a>
+    <a href="/catalogo.html">Productos</a>
     <span class="sep">›</span>
     <span class="current" id="breadcrumb-name">Cargando...</span>
 </div>
@@ -526,7 +526,7 @@ function renderProduct(product, page) {
                     Agregar al carrito
                 </button>
 
-                <button class="btn-back" onclick="window.location.href='/index.html'">
+                <button class="btn-back" onclick="window.history.length > 1 ? window.history.back() : window.location.href='/catalogo.html'">
                     <i class="ti ti-arrow-left"></i>
                     Seguir explorando
                 </button>
