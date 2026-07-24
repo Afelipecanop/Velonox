@@ -841,8 +841,8 @@ async function handleModalCheckout() {
             // Pago anticipado → agregar al carrito de la DB o localStorage y redirigir
             if (isLoggedIn()) {
                 await addToCart(currentProduct.id, modalQty);
-                const data = await checkout();
-                window.location.href = data.checkout_url;
+                localStorage.setItem("velonox_checkout_method", "anticipado");
+                window.location.href = "/checkout.html";
             } else {
                 // Guardar en localStorage y llevar al checkout
                 const cart = [];
