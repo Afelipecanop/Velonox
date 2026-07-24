@@ -1,33 +1,30 @@
-import smtplib
 import os
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# Ya no se usan (Railway bloquea el puerto SMTP saliente) — se dejan por si acaso.
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+
 EMAILS_FROM = os.getenv("EMAILS_FROM", "Velonox <hola@velonox.co>")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://velonox.co")
 
+resend.api_key = os.getenv("RESEND_API_KEY")
+
 
 def send_email(to: str, subject: str, html: str):
-    """Envía un email HTML via SMTP."""
+    """Envía un email HTML vía la API de Resend."""
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = EMAILS_FROM
-        msg["To"] = to
-        msg.attach(MIMEText(html, "html"))
-
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(SMTP_USER, to, msg.as_string())
+        resend.Emails.send({
+            "from": EMAILS_FROM,
+            "to": [to],
+            "subject": subject,
+            "html": html,
+        })
         return True
     except Exception as e:
         print(f"Error enviando email a {to}: {e}")

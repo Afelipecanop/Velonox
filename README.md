@@ -200,7 +200,7 @@ uvicorn main:app --reload
 | `BOLD_API_KEY` / `BOLD_SECRET_KEY` | Integración de pagos con Bold |
 | `DROPI_BASE_URL` / `DROPI_API_KEY` | Integración de fulfillment con Dropi |
 | `ANTHROPIC_API_KEY` | Generación de bloques visuales vía IA |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | Envío de correos transaccionales |
+| `RESEND_API_KEY` / `EMAILS_FROM` | Envío de correos transaccionales vía Resend |
 
 > No se incluyen credenciales ni secretos en este repositorio.
 
