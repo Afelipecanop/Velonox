@@ -20,7 +20,7 @@ from services.auth import create_password_reset_token, get_valid_reset_token, co
 from services.email import email_recuperacion_password
 import os
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://e-commerceutcocina.pages.dev")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://velonox.co")
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 

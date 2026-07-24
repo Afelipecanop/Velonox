@@ -11,7 +11,7 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 EMAILS_FROM = os.getenv("EMAILS_FROM", "Velonox <hola@velonox.com>")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://e-commerceutcocina.pages.dev")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://velonox.co")
 
 
 def send_email(to: str, subject: str, html: str):
