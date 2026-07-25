@@ -10,7 +10,17 @@
       "Bash(pip install *)",
       "Bash(python3 -m playwright install chromium --with-deps)",
       "Bash(python3 *)",
-      "WebFetch(domain:e-commerce-con-fastapi-y-postgreqsl.pages.dev)"
+      "WebFetch(domain:e-commerce-con-fastapi-y-postgreqsl.pages.dev)",
+      "Bash(alembic current *)",
+      "Bash(alembic heads *)",
+      "Bash(python -m alembic current)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(python -c \"import resend; print\\(resend.__file__\\)\")",
+      "Bash(python -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(curl -s http://127.0.0.1:8123/products/)",
+      "Bash(taskkill //F //PID 10292)",
+      "Bash(python -m alembic revision --autogenerate -m \"agregar category y dropi_product_id a products\")",
+      "Bash(python -m alembic upgrade head)"
     ]
   }
 }

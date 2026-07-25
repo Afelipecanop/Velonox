@@ -133,6 +133,17 @@
         .footer-social i{font-size:18px;color:#2A4A38;cursor:pointer;transition:color .2s}
         .footer-social i:hover{color:#1D7A4F}
 
+        /* Entrada animada de los bloques del layout (evita el "pop" brusco mientras
+           se cargan desde el backend): arranca invisible y hace fade-in + leve
+           subida solo la primera vez que se llenan; recargas posteriores (cambio
+           de moneda) no vuelven a animar porque .loaded ya quedó aplicada. */
+        #layout-container{opacity:0}
+        #layout-container.loaded{animation:layoutFadeIn .5s cubic-bezier(.2,.8,.2,1) forwards}
+        @keyframes layoutFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        @media (prefers-reduced-motion: reduce){
+            #layout-container.loaded{animation-duration:.001ms}
+        }
+
         /* TOAST */
         .toast{position:fixed;bottom:2rem;right:2rem;background:#0F1A14;color:#C8D8C0;padding:.75rem 1.2rem;border-radius:2px;font-size:13px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .3s;z-index:9999;pointer-events:none}
         .toast.show{opacity:1;transform:translateY(0)}
@@ -322,6 +333,7 @@ window.animateCards = animateCards;
                 const el = renderLayoutBlock(block, products);
                 if (el) container.appendChild(el);
             }
+            container.classList.add("loaded");
             // Los <script> insertados vía innerHTML no se ejecutan; hay que
             // recrearlos para que las secciones personalizadas (custom_html) corran.
             container.querySelectorAll("script").forEach(oldScript => {
