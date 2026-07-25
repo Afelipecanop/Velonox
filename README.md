@@ -16,7 +16,7 @@ Autenticación · Catálogo · Carrito · Checkout (registrado e invitado) · Pa
 [![Vanilla JS](https://img.shields.io/badge/Frontend-HTML%2FCSS%2FJS-F7DF1E?logo=javascript&logoColor=black)](#)
 [![Railway](https://img.shields.io/badge/Backend-Railway-0B0D0E?logo=railway&logoColor=white)](https://railway.app/)
 [![Cloudflare Pages](https://img.shields.io/badge/Frontend-Cloudflare%20Pages-F38020?logo=cloudflare&logoColor=white)](https://velonox.co)
-[![License](https://img.shields.io/badge/status-en%20desarrollo%20activo-yellow)](#)
+[![License](https://img.shields.io/badge/status-en%20producción-brightgreen)](#)
 
 </div>
 
@@ -33,7 +33,7 @@ Autenticación · Catálogo · Carrito · Checkout (registrado e invitado) · Pa
 - [Instalación rápida](#-instalación-rápida)
 - [Variables de entorno](#-variables-de-entorno)
 - [Despliegue](#-despliegue)
-- [Roadmap](#-roadmap)
+- [Mantenimiento continuo](#-mantenimiento-continuo)
 
 ---
 
@@ -45,7 +45,7 @@ El backend expone una API REST con **FastAPI** sobre **PostgreSQL** (SQLAlchemy 
 
 ## 🚦 Estado actual
 
-El proyecto cuenta con una base funcional sólida y varios módulos operativos:
+**La tienda está finalizada y operando en producción**, vendiendo activamente en [velonox.co](https://velonox.co). Todos los módulos core están completos y estables:
 
 | Módulo | Estado |
 |---|---|
@@ -58,7 +58,8 @@ El proyecto cuenta con una base funcional sólida y varios módulos operativos:
 | Panel administrativo | ✅ Operativo |
 | Métricas de negocio | ✅ Operativo |
 | Conversión USD/COP vía TRM | ✅ Operativo |
-| Suite de pruebas automatizadas | 🚧 Pendiente |
+
+De aquí en adelante, el trabajo sobre el repositorio consiste en **nuevas implementaciones puntuales y corrección de bugs** que se detecten en producción, no en desarrollo de funcionalidades base.
 
 ## 🏗️ Arquitectura
 
@@ -129,6 +130,8 @@ flowchart LR
 </table>
 
 ## ✨ Novedades recientes
+
+> Con la tienda en producción, esta sección funciona como changelog: nuevas implementaciones y correcciones de bugs encontrados sobre la marcha.
 
 - Integración de autenticación con Google Identity Services en la página de login, con endpoint backend para validar el token de Google y crear o reutilizar la cuenta del usuario.
 - Flujo de acceso híbrido que soporta login con email/contraseña y login social, incluyendo la creación automática de carrito para usuarios que ingresan por Google.
@@ -211,19 +214,19 @@ uvicorn main:app --reload
 - **Base de datos** → PostgreSQL gestionada por el entorno de ejecución del backend
 - **Seguridad** → CORS y políticas de acceso configuradas explícitamente para permitir solo los orígenes esperados
 
-## 🗺️ Roadmap
+## 🛠️ Mantenimiento continuo
 
-- [ ] Mejorar la experiencia del panel administrativo
-- [ ] Añadir más validaciones y manejo de errores
-- [ ] Ampliar pruebas automatizadas y cobertura
-- [ ] Mejorar la documentación técnica y de uso
-- [ ] Refinar la experiencia visual y la usabilidad
-- [ ] Fortalecer el despliegue, la observabilidad y la infraestructura
+La tienda ya está lista para vender. El trabajo futuro no es un roadmap hacia un "producto terminado", sino mantenimiento continuo sobre una plataforma ya en producción:
+
+- Corrección de bugs reportados en producción
+- Implementaciones puntuales solicitadas sobre módulos existentes
+- Ajustes de UX/UI y contenido a medida que se detecten oportunidades
+- Mejoras de rendimiento, seguridad y observabilidad cuando aplique
 
 ---
 
 <div align="center">
 
-Proyecto en desarrollo continuo, evolucionando hacia una plataforma más completa, escalable y lista para producción.
+Tienda finalizada y en producción en [velonox.co](https://velonox.co). A partir de aquí, este repositorio evoluciona mediante nuevas implementaciones y corrección de bugs.
 
 </div>

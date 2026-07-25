@@ -1,27 +1,29 @@
 ﻿================================================================================
 INFORME DETALLADO DEL PROYECTO E-COMMERCE CON FASTAPI Y POSTGRESQL
-Fecha de Actualización: Julio 21, 2026
+Fecha de Actualización: Julio 25, 2026
 ================================================================================
 
 1. DESCRIPCIÓN GENERAL
 ================================================================================
 
-Proyecto e-commerce en desarrollo activo, con backend desarrollado en FastAPI,
+Proyecto e-commerce FINALIZADO y en producción, con backend desarrollado en FastAPI,
 PostgreSQL como motor de base de datos y un frontend estático en HTML, CSS y
 JavaScript vanilla. La plataforma permite gestionar usuarios, catálogo de productos,
 categorías, carrito, pagos, checkout invitado, contenido visual de la tienda,
 páginas de producto personalizadas, ajustes de configuración, métricas de negocio
 y una experiencia de compra más completa para clientes y administradores.
 
-Estado actual: MVP funcional con módulos principales operativos.
+Estado actual: Tienda finalizada y operando en producción, vendiendo activamente en
+velonox.co. Todos los módulos principales están completos y estables.
 - Backend: funcional y en uso para la experiencia comercial principal
 - Frontend público: funcional y alineado con la experiencia de compra
 - Panel de administración: operativo para gestión de productos, layout y ajustes
 - Integraciones externas: activas para pagos (Bold), fulfillment (Dropi), TRM y IA
 - Testing automatizado: 0% (sin suite implementada en este repositorio)
 
-El proyecto se encuentra en una etapa madura de desarrollo, con una base sólida para
-seguir escalando con nuevas mejoras y una implementación más robusta en producción.
+El proyecto salió de la etapa de desarrollo de funcionalidades base. De aquí en
+adelante, el trabajo sobre el repositorio consiste en nuevas implementaciones
+puntuales y corrección de bugs detectados en producción, no en construir el MVP.
 
 
 2. PROPÓSITO Y ALCANCE
@@ -65,6 +67,9 @@ BASE DE DATOS:
 - store_layout_history: snapshot del estado anterior al guardar cambios
 - product_pages: contenido enriquecido de páginas de producto
 - store_settings: configuraciones generales de la tienda y parámetros comerciales
+- product_variants: variantes por producto (nombre, precio opcional, stock, imagen)
+- product_images: galería de imágenes por producto (orden, imagen principal)
+- password_reset_tokens: tokens de recuperación de contraseña
 
 PRINCIPALES FUNCIONALIDADES BACKEND:
 - Rutas de autenticación y perfil de usuario
@@ -94,16 +99,23 @@ El frontend está implementado con HTML semántico, estilos propios y JavaScript
 vanilla para interactuar con la API.
 
 PÁGINAS IMPLEMENTADAS:
-- index.html: home de la tienda y catálogo principal
-- login.html: registro e inicio de sesión
+- index.html: home de la tienda y catálogo destacado
+- catalogo.html: catálogo completo con búsqueda, filtros y orden
+- categoria.html: vista de una categoría específica (requiere ?cat=<slug>)
+- categorias.html: listado de categorías disponibles
+- login.html: registro e inicio de sesión (incluye login social con Google)
+- forgot-password.html y reset-password.html: recuperación de contraseña
 - cart.html: visualización y gestión del carrito
 - checkout.html: flujo de compra y confirmación de pago
+- pedido-confirmado.html: confirmación de pedido tras el pago/checkout
 - admin.html: panel administrativo y editor visual
-- product.html: detalle de producto con descripción, características y productos relacionados
+- product.html: detalle de producto con galería, variantes, descripción,
+  características y productos relacionados
 - nosotros.html: información institucional y propuesta de valor
 - contacto.html: formulario de contacto y canal de comunicación
 - politicas.html y terminos.html: información legal y condiciones de uso
 - regalos.html y sets.html: páginas temáticas de contenido comercial
+- 404.html: página de error no encontrado
 
 COMPONENTES DESTACADOS:
 - Diseño responsive y estilos compartidos
@@ -153,6 +165,10 @@ COMPONENTES DESTACADOS:
 
 4.4 NOVEDADES RECIENTES
 ------------------------------------
+Con la tienda finalizada y en producción, esta sección funciona como changelog:
+nuevas implementaciones y corrección de bugs encontrados sobre la marcha, no
+desarrollo de funcionalidades base.
+
 - Se integró autenticación con Google Identity Services en la página de login del frontend,
   con un endpoint backend /auth/google que valida el ID token y genera un JWT de sesión.
 - El flujo de acceso ahora soporta usuarios registrados por email/contraseña y usuarios que
@@ -160,6 +176,27 @@ COMPONENTES DESTACADOS:
 - El panel administrativo recibió mejoras en la experiencia de edición del layout, incluyendo
   previsualización en vivo del contenido y soporte para historial y restauración de versiones
   previas del CMS visual.
+- Se agregaron variantes de producto (product_variants) y galería de imágenes
+  (product_images), embebidas en la respuesta de /products/ y editables desde el
+  panel admin; product.html puede cambiar la imagen mostrada según la variante
+  seleccionada (precio y stock siguen siendo a nivel de producto, no de variante).
+- Se renombraron las páginas de catálogo: catalogo.html ahora es el catálogo
+  completo (antes tienda.html) y categoria.html es la vista de una sola categoría
+  (antes catalogo.html); tienda.html ya no existe.
+- Envío de correos migrado de SMTP a la API de Resend (services/email.py), ya que
+  Railway bloquea los puertos SMTP salientes en producción.
+- Corrección de bug real: comparación de datetimes naive vs. aware en auth.py
+  causaba un 500 en POST /auth/reset-password; se migró todo el archivo a
+  datetime.now(timezone.utc).
+- Corrección de bug real: el checkout desde el modal de producto llamaba a
+  checkout() sin body en vez de redirigir a /checkout.html.
+- Corrección de bug real: login.html recargaba la página antes de mostrar el
+  error de credenciales incorrectas; ahora se agregó feedback visual (shake) y
+  se eliminó el redirect/reload prematuro.
+- Se agregó una migración faltante para products.category/dropi_product_id y se
+  ocultan variantes desactivadas en la vista pública.
+- Se agregó el favicon estándar de la tienda a login.html, forgot-password.html y
+  reset-password.html (antes solo lo tenían el resto de páginas públicas).
 
 
 5. INFRAESTRUCTURA DEL PROYECTO
@@ -226,10 +263,11 @@ La infraestructura actual contempla:
 5.5 ESTADO DE LA INFRAESTRUCTURA
 ------------------------------------
 
-La base de infraestructura del proyecto ya está definida y operativa en su estructura
-principal. El backend puede ejecutarse como servicio web, el frontend funciona como
-contenido estático y la base de datos se integra de forma consistente con el modelo de
-negocio. El siguiente paso natural es fortalecer la infraestructura con:
+La infraestructura del proyecto está definida, desplegada y operando en producción:
+el backend corre como servicio web en Railway, el frontend se sirve como contenido
+estático en Cloudflare Pages y la base de datos PostgreSQL se integra de forma
+consistente con el modelo de negocio. Posibles mejoras futuras, a implementar solo
+si surge la necesidad (no bloquean la operación actual de la tienda):
 - contenedores o Docker
 - CI/CD automatizado
 - ambientes de staging y producción separados
@@ -243,22 +281,26 @@ PUNTOS FUERTES:
 - La arquitectura base está bien definida y es escalable
 - El backend expone rutas funcionales para el flujo comercial principal
 - El frontend ya cubre las experiencias clave para clientes y administradores
-- El proyecto demuestra un avance sólido en la implementación del MVP
+- La tienda está finalizada, desplegada y vendiendo activamente en producción
 - La integración de layout, páginas de producto, métricas, TRM y checkout invitado aporta
   valor real al negocio
 
-MEJORAS PENDIENTES:
-- Añadir más pruebas automatizadas
-- Mejorar validaciones y manejo de errores
-- Refinar aún más la experiencia de administración
+MANTENIMIENTO Y MEJORAS CONTINUAS:
+(ya no son requisitos para "terminar" la tienda, sino trabajo continuo sobre una
+plataforma que ya está en producción)
+- Corregir bugs reportados en producción a medida que se detecten
+- Añadir pruebas automatizadas cuando el riesgo de una zona del código lo justifique
+- Mejorar validaciones y manejo de errores puntuales
+- Refinar la experiencia de administración según necesidades reales de uso
 - Expandir documentación técnica y de uso
 - Continuar optimizando rendimiento y experiencia visual
-- Fortalecer la infraestructura con despliegue más robusto y automatizado
+- Fortalecer la infraestructura con despliegue más robusto y automatizado, si aplica
 
 ESTADO GENERAL:
-- Desarrollo activo
-- MVP en marcha
-- Preparado para seguir evolucionando con nuevas funcionalidades
+- Producción activa
+- Tienda finalizada y vendiendo
+- El repositorio evoluciona mediante nuevas implementaciones puntuales y
+  corrección de bugs, no desarrollo de funcionalidades base
 
 
 7. MAPA ESTRUCTURAL DEL PROYECTO PARA IA Y MANTENIMIENTO
