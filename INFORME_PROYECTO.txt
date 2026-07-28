@@ -1,6 +1,6 @@
 ﻿================================================================================
 INFORME DETALLADO DEL PROYECTO E-COMMERCE CON FASTAPI Y POSTGRESQL
-Fecha de Actualización: Julio 25, 2026
+Fecha de Actualización: Julio 28, 2026
 ================================================================================
 
 1. DESCRIPCIÓN GENERAL
@@ -123,6 +123,8 @@ COMPONENTES DESTACADOS:
 - Persistencia de sesión con token de acceso
 - Menú administrativo con vistas de productos, categorías, layout, métricas y ajustes
 - Experiencia visual refinada en la página de producto y el editor de layout
+- Widget de chat (asistente virtual) embebido en las páginas comerciales, con
+  sesión de visitante persistida en el navegador
 
 
 4. FUNCIONALIDADES IMPLEMENTADAS HASTA EL MOMENTO
@@ -162,6 +164,9 @@ COMPONENTES DESTACADOS:
 - Envío de correos transaccionales
 - Analítica web con Cloudflare
 - Endpoints de salud y verificación de base de datos
+- Asistente de chat conectado a un flujo de automatización en n8n (única
+  integración que el frontend llama de forma directa, sin proxy del backend,
+  ya que el webhook de n8n no maneja credenciales propias de Velonox)
 
 4.4 NOVEDADES RECIENTES
 ------------------------------------
@@ -197,6 +202,14 @@ desarrollo de funcionalidades base.
   ocultan variantes desactivadas en la vista pública.
 - Se agregó el favicon estándar de la tienda a login.html, forgot-password.html y
   reset-password.html (antes solo lo tenían el resto de páginas públicas).
+- Se agregó un widget de chat propio (frontend/js/velonox-chat-widget.js), auto-
+  inicializable y sin dependencias, enlazado antes de </body> en las páginas
+  comerciales (index, catalogo, categoria, categorias, product, cart, checkout,
+  nosotros, contacto, regalos y sets); no se incluyó en login, forgot-password,
+  reset-password, pedido-confirmado ni admin. El widget envía los mensajes del
+  visitante directamente desde el navegador a un webhook de n8n, que centraliza
+  la lógica del asistente, y mantiene un session_id por visitante en localStorage
+  para conservar el contexto de la conversación entre recargas.
 
 
 5. INFRAESTRUCTURA DEL PROYECTO
@@ -437,6 +450,12 @@ un framework complejo.
 
 - frontend/js/motion.js
   Animaciones y mejoras de experiencia visual.
+
+- frontend/js/velonox-chat-widget.js
+  Widget de chat auto-inicializable y sin dependencias. Se activa agregando
+  un <script> antes de </body> en la página; envía los mensajes directamente
+  a un webhook externo de n8n (no pasa por el backend de Velonox) y guarda un
+  identificador de sesión de visitante en localStorage.
 
 7.4 FUNCIONES Y FLUJOS IMPORTANTES DEL NEGOCIO
 ------------------------------------

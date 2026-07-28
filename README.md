@@ -82,6 +82,7 @@ flowchart LR
     DROPI["📦 Dropi\nFulfillment"]
     TRM["💱 TRM\nUSD ⇄ COP"]
     AI["🤖 IA\nGenerador de bloques visuales"]
+    N8N["💬 n8n\nAsistente de chat"]
 
     FE -->|HTTPS / JSON| API
     API --> AUTH & CATALOG & CART & METRICS
@@ -94,6 +95,7 @@ flowchart LR
     CART -->|crea guía de envío| DROPI
     CATALOG -->|conversión de precios| TRM
     CATALOG -->|generación de contenido| AI
+    FE -->|widget de chat, directo| N8N
 ```
 
 ## ✨ Características
@@ -111,6 +113,7 @@ flowchart LR
 - Checkout invitado sin registro previo
 - Panel administrativo para layout, productos, categorías, marca y métricas
 - Páginas institucionales, contacto, políticas, regalos y sets
+- Widget de chat (asistente virtual) embebido en las páginas comerciales, conectado a un flujo de automatización en n8n
 
 </td>
 <td valign="top" width="50%">
@@ -136,6 +139,7 @@ flowchart LR
 - Integración de autenticación con Google Identity Services en la página de login, con endpoint backend para validar el token de Google y crear o reutilizar la cuenta del usuario.
 - Flujo de acceso híbrido que soporta login con email/contraseña y login social, incluyendo la creación automática de carrito para usuarios que ingresan por Google.
 - Mejoras en el panel administrativo con previsualización en vivo del layout y soporte para historial y restauración de versiones previas del CMS visual.
+- Widget de chat propio (`frontend/js/velonox-chat-widget.js`) enlazado en las páginas comerciales (home, catálogo, categorías, producto, carrito, checkout, institucionales, regalos y sets), no en páginas de autenticación/confirmación/admin. Envía los mensajes directamente desde el navegador a un webhook de n8n que orquesta la lógica del asistente; mantiene la conversación por sesión de visitante vía `localStorage`.
 
 ## 🧰 Stack técnico
 
@@ -149,6 +153,7 @@ flowchart LR
 | **Pagos** | Bold |
 | **Fulfillment** | Dropi |
 | **Contenido generativo** | API de IA para bloques visuales (server-side) |
+| **Asistente de chat** | Widget propio (`js/velonox-chat-widget.js`) conectado a n8n |
 | **Analítica** | Cloudflare Web Analytics |
 | **Infraestructura** | Railway (backend) · Cloudflare Pages (frontend) |
 
