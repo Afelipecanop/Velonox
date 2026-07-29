@@ -131,10 +131,9 @@
                     cartItems = [];
                 }
             } else {
-                // Invitado → cargar desde localStorage. "velonox_cart" también lo escribe
-                // js/cart.js (addToLocalCart) con una forma distinta ({product_id, quantity}
-                // en vez de {id, name, price, ...}), así que descartamos cualquier item que
-                // no traiga los campos que esta vista necesita para renderizarse.
+                // Invitado → cargar desde localStorage ("velonox_cart", mismo formato que
+                // escribe addToGuestCart en js/api.js). Se descarta cualquier item que no
+                // traiga los campos que esta vista necesita, como red de seguridad.
                 const rawGuestCart = getGuestCart();
                 cartItems = rawGuestCart.filter(isValidCartItem);
                 if (cartItems.length !== rawGuestCart.length) {

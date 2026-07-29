@@ -313,11 +313,22 @@ window.animateCards = animateCards;
         updateFreeShippingBadge();
     }
 
-    // Agregar al carrito NO requiere login: se guarda en el carrito local.
-    function handleAdd(id, name, stock) {
+    // Con sesión: se agrega al carrito real del backend. Sin sesión: al carrito
+    // de invitado en localStorage (mismo formato que usan cart.html/product.html).
+    async function handleAdd(id, name, price, image_url, stock) {
         if (stock <= 0) { showToast("Producto sin stock", "err"); return; }
-        addToLocalCart(id, 1);
-        showToast(`"${name}" agregado al carrito`, "ok");
+        if (isLoggedIn()) {
+            try {
+                await addToCart(id, 1);
+                showToast(`"${name}" agregado al carrito`, "ok");
+            } catch(e) {
+                showToast(e.message, "err");
+            }
+        } else {
+            addToGuestCart({ id, name, price, image_url, stock });
+            showToast(`"${name}" agregado al carrito`, "ok");
+            updateCartBadge();
+        }
     }
 
     async function loadLayoutBlocks() {
@@ -427,7 +438,7 @@ window.animateCards = animateCards;
                                             <p class="prod-sub">Acero 304 · ${p.stock>0?'En stock':'Sin stock'}</p>
                                             <div class="prod-row">
                                                 <span class="prod-price">${vxPrice(p.price)}</span>
-                                                <button class="prod-btn" onclick="event.stopPropagation();handleAdd('${p.id}','${p.name}',${p.stock})">Agregar</button>
+                                                <button class="prod-btn" onclick="event.stopPropagation();handleAdd('${p.id}','${p.name.replace(/'/g,"\\'")}',${p.price},'${(p.image_url||'').replace(/'/g,"\\'")}',${p.stock})">Agregar</button>
                                             </div>
                                         </div>
                                     </div>`;

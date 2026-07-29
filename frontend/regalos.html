@@ -324,7 +324,7 @@ async function loadRegalos() {
                 '<div class="prod-sub">Acero 304 · ' + (p.stock > 0 ? 'En stock' : 'Sin stock') + '</div>' +
                 '<div class="prod-row">' +
                 '<span class="prod-price">' + vxPrice(p.price) + '</span>' +
-                '<button class="prod-btn" onclick="event.stopPropagation();handleAdd(\'' + p.id + '\',\'' + p.name.replace(/'/g,"\\'") + '\',' + p.stock + ')">Agregar</button>' +
+                '<button class="prod-btn" onclick="event.stopPropagation();handleAdd(\'' + p.id + '\',\'' + p.name.replace(/'/g,"\\'") + '\',' + p.price + ',\'' + (p.image_url||'').replace(/'/g,"\\'") + '\',' + p.stock + ')">Agregar</button>' +
                 '</div></div></div>';
         }).join('');
         if (window.animateCards) window.animateCards(".prod-card");
@@ -333,13 +333,13 @@ async function loadRegalos() {
     }
 }
 
-async function handleAdd(id, name, stock) {
+async function handleAdd(id, name, price, image_url, stock) {
     if (stock <= 0) { showToast("Producto sin stock", "err"); return; }
     if (isLoggedIn()) {
         try { await addToCart(id, 1); showToast('"' + name + '" agregado ✅'); }
         catch(e) { showToast(e.message, "err"); }
     } else {
-        addToGuestCart({ id: id, name: name, price: 0, stock: stock, image_url: null });
+        addToGuestCart({ id: id, name: name, price: price, stock: stock, image_url: image_url || null });
         showToast('"' + name + '" agregado al carrito ✅');
     }
 }
