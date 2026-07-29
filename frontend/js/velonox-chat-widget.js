@@ -164,14 +164,20 @@
     "#vlx-send svg { width: 16px; height: 16px; }\n" +
     "@media (max-width: 480px) {\n" +
     "  #vlx-chat-root { right: 12px; bottom: 12px; }\n" +
-    // En móvil el panel pasa a ser pantalla completa en vez de la cajita flotante
-    // 360x520: así no hay "hueco" fijo que el teclado táctil pueda tapar. El alto
-    // real (que descuenta el teclado) lo termina de ajustar JS vía visualViewport,
-    // porque 100dvh no reacciona al teclado en todos los navegadores (Safari iOS).
+    // En reposo (sin teclado) el panel es compacto, ancla junto a la burbuja y
+    // se ajusta al contenido (mensaje de bienvenida) con un tope de alto.
     "  #vlx-panel {\n" +
+    "    width: calc(100vw - 24px); right: -12px;\n" +
+    "    height: auto; max-height: min(70vh, 520px);\n" +
+    "  }\n" +
+    // Solo cuando el teclado táctil está abierto (detectado por JS vía
+    // visualViewport) el panel pasa a pantalla completa, para que el teclado
+    // no tape el input ni el mensaje: 100dvh no reacciona al teclado en todos
+    // los navegadores (Safari iOS), por eso JS fija el alto real en px.
+    "  #vlx-panel.vlx-fullscreen {\n" +
     "    position: fixed;\n" +
     "    top: 0; left: 0; right: 0; bottom: auto;\n" +
-    "    max-width: none;\n" +
+    "    width: 100%; max-width: none;\n" +
     "    border-radius: 0;\n" +
     "    height: 100vh; max-height: 100vh;\n" +
     "    height: 100dvh; max-height: 100dvh;\n" +
@@ -264,14 +270,32 @@
     return window.matchMedia("(max-width: 480px)").matches;
   }
 
+  // Alto de referencia (sin teclado) tomado al abrir el panel en móvil. Si el
+  // alto visible cae bastante por debajo de esa referencia, es que el teclado
+  // se abrió. Se resetea cada vez que el panel se cierra.
+  var mobileBaselineHeight = null;
+  var KEYBOARD_THRESHOLD = 120; // px
+
   function syncMobileViewport() {
-    if (isMobile() && panel.classList.contains("vlx-open") && window.visualViewport) {
-      var vv = window.visualViewport;
+    if (!isMobile() || !panel.classList.contains("vlx-open") || !window.visualViewport) {
+      panel.classList.remove("vlx-fullscreen");
+      panel.style.height = "";
+      panel.style.top = "";
+      mobileBaselineHeight = null;
+      return;
+    }
+    var vv = window.visualViewport;
+    if (mobileBaselineHeight === null) mobileBaselineHeight = vv.height;
+    var keyboardOpen = (mobileBaselineHeight - vv.height) > KEYBOARD_THRESHOLD;
+    if (keyboardOpen) {
+      panel.classList.add("vlx-fullscreen");
       panel.style.height = vv.height + "px";
       panel.style.top = vv.offsetTop + "px";
     } else {
+      panel.classList.remove("vlx-fullscreen");
       panel.style.height = "";
       panel.style.top = "";
+      mobileBaselineHeight = vv.height; // sigue el alto real (rotación, barra del navegador, etc.)
     }
   }
 
