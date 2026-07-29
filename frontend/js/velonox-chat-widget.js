@@ -164,7 +164,18 @@
     "#vlx-send svg { width: 16px; height: 16px; }\n" +
     "@media (max-width: 480px) {\n" +
     "  #vlx-chat-root { right: 12px; bottom: 12px; }\n" +
-    "  #vlx-panel { width: calc(100vw - 24px); right: -12px; }\n" +
+    // En móvil el panel pasa a ser pantalla completa en vez de la cajita flotante
+    // 360x520: así no hay "hueco" fijo que el teclado táctil pueda tapar. El alto
+    // real (que descuenta el teclado) lo termina de ajustar JS vía visualViewport,
+    // porque 100dvh no reacciona al teclado en todos los navegadores (Safari iOS).
+    "  #vlx-panel {\n" +
+    "    position: fixed;\n" +
+    "    top: 0; left: 0; right: 0; bottom: auto;\n" +
+    "    max-width: none;\n" +
+    "    border-radius: 0;\n" +
+    "    height: 100vh; max-height: 100vh;\n" +
+    "    height: 100dvh; max-height: 100dvh;\n" +
+    "  }\n" +
     "}\n";
 
   var styleTag = document.createElement("style");
@@ -242,6 +253,35 @@
   }
 
   // ---------------------------------------------------------
+  // Alto real en móvil (descuenta el teclado táctil)
+  // ---------------------------------------------------------
+  // position:fixed + vh/dvh no siempre se recalculan cuando el teclado abre
+  // (sobre todo en Safari iOS), porque se miden contra el viewport de layout,
+  // no el visual. window.visualViewport sí refleja el alto visible real, así
+  // que lo usamos para fijar el alto/posición del panel por JS mientras está
+  // abierto en móvil; en desktop se limpian los estilos inline y manda el CSS.
+  function isMobile() {
+    return window.matchMedia("(max-width: 480px)").matches;
+  }
+
+  function syncMobileViewport() {
+    if (isMobile() && panel.classList.contains("vlx-open") && window.visualViewport) {
+      var vv = window.visualViewport;
+      panel.style.height = vv.height + "px";
+      panel.style.top = vv.offsetTop + "px";
+    } else {
+      panel.style.height = "";
+      panel.style.top = "";
+    }
+  }
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", syncMobileViewport);
+    window.visualViewport.addEventListener("scroll", syncMobileViewport);
+  }
+  window.addEventListener("resize", syncMobileViewport);
+
+  // ---------------------------------------------------------
   // Comunicación con n8n
   // ---------------------------------------------------------
   function sendMessage() {
@@ -287,16 +327,26 @@
     panel.classList.toggle("vlx-open");
     if (opening) {
       badge.style.display = "none";
+      syncMobileViewport();
       if (!hasOpened) {
         hasOpened = true;
         appendMessage(CONFIG.welcomeMessage, "bot");
       }
-      input.focus();
+      // En móvil no forzamos el foco: abrir el teclado de una vez, mientras el
+      // panel todavía se está desplegando, es lo que causaba el salto de layout
+      // que tapaba el primer mensaje. Que el usuario abra el teclado al tocar
+      // el campo, ya con el panel asentado.
+      if (!isMobile()) {
+        input.focus();
+      }
+    } else {
+      syncMobileViewport();
     }
   });
 
   closeBtn.addEventListener("click", function () {
     panel.classList.remove("vlx-open");
+    syncMobileViewport();
   });
 
   sendBtn.addEventListener("click", sendMessage);
