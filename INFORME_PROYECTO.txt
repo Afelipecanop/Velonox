@@ -1,6 +1,6 @@
 ﻿================================================================================
 INFORME DETALLADO DEL PROYECTO E-COMMERCE CON FASTAPI Y POSTGRESQL
-Fecha de Actualización: Julio 28, 2026
+Fecha de Actualización: Julio 30, 2026
 ================================================================================
 
 1. DESCRIPCIÓN GENERAL
@@ -210,6 +210,28 @@ desarrollo de funcionalidades base.
   visitante directamente desde el navegador a un webhook de n8n, que centraliza
   la lógica del asistente, y mantiene un session_id por visitante en localStorage
   para conservar el contexto de la conversación entre recargas.
+- Se agregó gestión manual completa de pedidos en el panel admin (routes/payments.py:
+  GET /payments/admin/orders con filtros por estado/método/búsqueda, y PATCH
+  /payments/admin/orders/{id} para cambiar el estado), necesaria porque aún no se
+  cuenta con credenciales de Dropi para automatizar el fulfillment de pedidos
+  contraentrega. Marcar manualmente un pedido "anticipado" como pagado replica los
+  mismos efectos que el webhook de Bold (descuento de stock, vaciado de carrito,
+  intento de creación en Dropi, correo de confirmación) para evitar procesar dos
+  veces la misma orden.
+- Nueva pestaña "Pedidos" en admin.html: tabla con todas las órdenes, badge de
+  estado de pago derivado de order.status, y detalle expandible por pedido con
+  dirección de envío, teléfono, tipo/número de documento, código DANE de la
+  ciudad y referencias Bold/Dropi, para poder crear la guía de envío en Dropi
+  de forma manual.
+- Corrección de bug real: el webhook de Bold (/payments/bold/webhook) no
+  actualizaba el estado de los pedidos porque el payload real enviado por Bold
+  tiene formato tipo CloudEvents (estado en el campo "type" raíz, referencia de
+  la orden en data.metadata.reference), distinto al que asumía originalmente el
+  código (data.payment.status / data.payment.order_id). Se corrigió el parseo
+  del webhook para leer la estructura real, confirmada contra logs de producción.
+- Corrección de bug real: la configuración de CORS en main.py no incluía el
+  método PATCH, lo que causaba un 400 en la petición preflight y rompía el
+  cambio de estado de pedidos desde el panel admin.
 
 
 5. INFRAESTRUCTURA DEL PROYECTO

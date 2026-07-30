@@ -37,13 +37,13 @@ Autenticación · Catálogo · Carrito · Checkout (registrado e invitado) · Pa
 
 ---
 
-## 🧭 Sobre el proyecto
+##  Sobre el proyecto
 
 **Velonox Store** es una tienda online construida desde cero con un enfoque comercial completo: no es solo un catálogo con carrito, sino una plataforma con panel administrativo, edición visual del layout, checkout invitado, integración con pasarelas de pago y fulfillment, y un sistema de moneda dinámico USD/COP.
 
 El backend expone una API REST con **FastAPI** sobre **PostgreSQL** (SQLAlchemy 2.x, patrón síncrono), y el frontend es **HTML, CSS y JavaScript vanilla**, sin frameworks — priorizando control total y rendimiento sobre el "boilerplate" de un SPA.
 
-## 🚦 Estado actual
+##  Estado actual
 
 **La tienda está finalizada y operando en producción**, vendiendo activamente en [velonox.co](https://velonox.co). Todos los módulos core están completos y estables:
 
@@ -98,7 +98,7 @@ flowchart LR
     FE -->|widget de chat, directo| N8N
 ```
 
-## ✨ Características
+##  Características
 
 <table>
 <tr>
@@ -132,7 +132,7 @@ flowchart LR
 </tr>
 </table>
 
-## ✨ Novedades recientes
+##  Novedades recientes
 
 > Con la tienda en producción, esta sección funciona como changelog: nuevas implementaciones y correcciones de bugs encontrados sobre la marcha.
 
@@ -140,8 +140,11 @@ flowchart LR
 - Flujo de acceso híbrido que soporta login con email/contraseña y login social, incluyendo la creación automática de carrito para usuarios que ingresan por Google.
 - Mejoras en el panel administrativo con previsualización en vivo del layout y soporte para historial y restauración de versiones previas del CMS visual.
 - Widget de chat propio (`frontend/js/velonox-chat-widget.js`) enlazado en las páginas comerciales (home, catálogo, categorías, producto, carrito, checkout, institucionales, regalos y sets), no en páginas de autenticación/confirmación/admin. Envía los mensajes directamente desde el navegador a un webhook de n8n que orquesta la lógica del asistente; mantiene la conversación por sesión de visitante vía `localStorage`.
+- Nueva pestaña "Pedidos" en el panel administrativo: listado completo de órdenes (no solo las 8 más recientes de Métricas), con filtros por estado/método de pago/búsqueda, cambio manual de estado y un indicador visual de si el pago con Bold fue confirmado, pendiente o rechazado — necesario mientras no se cuenta con credenciales de Dropi para automatizar contraentrega. Cada pedido tiene un detalle expandible con dirección de envío, teléfono, tipo/número de documento, código DANE de la ciudad y referencias Bold/Dropi, para poder crear la guía de envío en Dropi manualmente.
+- Corrección de bug real: el webhook de Bold no actualizaba el estado de los pedidos porque el payload real que envía Bold (formato tipo CloudEvents, con el estado en `type` y la referencia en `data.metadata.reference`) no coincidía con la estructura que asumía el backend; se corrigió el parseo.
+- Corrección de bug real: CORS no incluía el método `PATCH`, lo que rompía con un 400 en preflight el cambio de estado de pedidos desde el admin.
 
-## 🧰 Stack técnico
+##  Stack técnico
 
 | Categoría | Tecnología |
 |---|---|
@@ -174,7 +177,7 @@ flowchart LR
 └── INFORME_PROYECTO.txt  # Documento de seguimiento del proyecto
 ```
 
-## 🚀 Instalación rápida
+##  Instalación rápida
 
 ```bash
 # 1. Crear y activar entorno virtual
@@ -212,7 +215,7 @@ uvicorn main:app --reload
 
 > No se incluyen credenciales ni secretos en este repositorio.
 
-## ☁️ Despliegue
+##  Despliegue
 
 - **Backend** → Railway
 - **Frontend** → Cloudflare Pages ([velonox.co](https://velonox.co))
