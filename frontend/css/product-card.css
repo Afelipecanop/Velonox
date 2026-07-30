@@ -1,5 +1,5 @@
 /* Fix responsive del grid/tarjeta de producto (.prod-grid / .prod-card / #vx-products-grid).
-   Compartido por index.html, catalogo.html, categoria.html y regalos.html — se enlaza
+   Compartido por index.html, catalogo.html y categoria.html — se enlaza
    después del <style> propio de cada página para poder sobreescribir sus reglas
    sin duplicar el resto del componente. */
 
