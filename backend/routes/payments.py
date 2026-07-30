@@ -131,6 +131,13 @@ def create_checkout(
     return {"flow": "cod", "order_id": str(order.id), "status": "confirmado"}
 
 
+# Bold puede enviar el estado en distinto casing/variantes según el evento
+# (ej. "APPROVED" vs "approved"); normalizamos a mayúsculas para no depender
+# de un formato exacto que nunca se confirmó contra un evento real de Bold.
+BOLD_APPROVED_STATUSES = {"APPROVED", "PAID", "SUCCESSFUL", "SUCCESS"}
+BOLD_REJECTED_STATUSES = {"REJECTED", "FAILED", "DECLINED", "VOIDED", "CANCELLED", "ERROR"}
+
+
 @router.post("/bold/webhook")
 async def bold_webhook(request: Request, db: Session = Depends(get_db)):
     """
@@ -142,22 +149,30 @@ async def bold_webhook(request: Request, db: Session = Depends(get_db)):
     signature = request.headers.get("x-bold-signature", "")
 
     if not verify_webhook_signature(raw_body, signature):
+        logger.warning(
+            f"Webhook de Bold rechazado por firma inválida. Header recibido: '{signature}'. "
+            f"Body: {raw_body[:500]!r}"
+        )
         raise HTTPException(status_code=400, detail="Firma inválida")
 
     payload = await request.json()
-    # TODO: confirmar la forma exacta del payload con un evento de prueba real
+    logger.info(f"Webhook de Bold recibido: {payload}")
+
     payment_data = payload.get("data", {}).get("payment", {})
     bold_order_id = payment_data.get("order_id")
-    tx_status = payment_data.get("status")
+    raw_status = payment_data.get("status")
+    tx_status = (raw_status or "").strip().upper()
 
     if not bold_order_id:
+        logger.warning(f"Webhook de Bold sin order_id en el payload: {payload}")
         return {"status": "ignored"}
 
     order = db.query(Order).filter(Order.bold_order_id == bold_order_id).first()
     if not order:
+        logger.warning(f"Webhook de Bold: no se encontró orden con bold_order_id={bold_order_id}")
         return {"status": "order not found"}
 
-    if tx_status == "approved" and order.status == "pending":
+    if tx_status in BOLD_APPROVED_STATUSES and order.status == "pending":
         order.status = "paid"
         db.commit()
 
@@ -200,9 +215,21 @@ async def bold_webhook(request: Request, db: Session = Depends(get_db)):
         except Exception as e:
             logger.error(f"Email de confirmación falló para orden {order.id}: {e}")
 
-    elif tx_status in ("rejected", "failed") and order.status == "pending":
+    elif tx_status in BOLD_REJECTED_STATUSES and order.status == "pending":
         order.status = "cancelled"
         db.commit()
+        logger.info(f"Orden {order.id} cancelada por Bold (status recibido: '{raw_status}')")
+
+    elif order.status != "pending":
+        logger.info(
+            f"Webhook de Bold ignorado para orden {order.id}: ya estaba en estado "
+            f"'{order.status}' (status recibido: '{raw_status}')"
+        )
+    else:
+        logger.warning(
+            f"Webhook de Bold con status desconocido '{raw_status}' para orden {order.id}. "
+            f"No se procesó ningún cambio de estado."
+        )
 
     return {"status": "ok"}
 
