@@ -131,11 +131,22 @@ def create_checkout(
     return {"flow": "cod", "order_id": str(order.id), "status": "confirmado"}
 
 
-# Bold puede enviar el estado en distinto casing/variantes según el evento
-# (ej. "APPROVED" vs "approved"); normalizamos a mayúsculas para no depender
-# de un formato exacto que nunca se confirmó contra un evento real de Bold.
-BOLD_APPROVED_STATUSES = {"APPROVED", "PAID", "SUCCESSFUL", "SUCCESS"}
-BOLD_REJECTED_STATUSES = {"REJECTED", "FAILED", "DECLINED", "VOIDED", "CANCELLED", "ERROR"}
+# Payload real de Bold confirmado contra un evento de producción (2026-07-30):
+# formato tipo CloudEvents, NO el que se había asumido originalmente ("data.payment.*").
+#   {
+#     "type": "SALE_REJECTED",              <- el estado va acá, a nivel raíz
+#     "data": {
+#       "metadata": {"reference": "VLX-..."}, <- nuestro bold_order_id va acá
+#       "bold_code": "B010",
+#       ...
+#     }
+#   }
+# Solo se confirmó "SALE_REJECTED" con un pago real fallido; el nombre exacto del
+# tipo para pagos aprobados no se ha visto todavía, así que el matching es por
+# substring ("APPROVED" / "REJECTED" etc.) en vez de comparar el string completo,
+# para no volver a romperse si Bold usa "SALE_APPROVED", "PAYMENT_APPROVED", etc.
+BOLD_APPROVED_KEYWORDS = ("APPROVED",)
+BOLD_REJECTED_KEYWORDS = ("REJECTED", "FAILED", "DECLINED", "VOIDED", "CANCELLED", "ERROR")
 
 
 @router.post("/bold/webhook")
@@ -158,13 +169,14 @@ async def bold_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.json()
     logger.info(f"Webhook de Bold recibido: {payload}")
 
-    payment_data = payload.get("data", {}).get("payment", {})
-    bold_order_id = payment_data.get("order_id")
-    raw_status = payment_data.get("status")
-    tx_status = (raw_status or "").strip().upper()
+    data = payload.get("data") or {}
+    raw_type = payload.get("type")
+    event_type = (raw_type or "").strip().upper()
+    bold_order_id = (data.get("metadata") or {}).get("reference")
+    bold_code = data.get("bold_code")
 
     if not bold_order_id:
-        logger.warning(f"Webhook de Bold sin order_id en el payload: {payload}")
+        logger.warning(f"Webhook de Bold sin data.metadata.reference en el payload: {payload}")
         return {"status": "ignored"}
 
     order = db.query(Order).filter(Order.bold_order_id == bold_order_id).first()
@@ -172,7 +184,10 @@ async def bold_webhook(request: Request, db: Session = Depends(get_db)):
         logger.warning(f"Webhook de Bold: no se encontró orden con bold_order_id={bold_order_id}")
         return {"status": "order not found"}
 
-    if tx_status in BOLD_APPROVED_STATUSES and order.status == "pending":
+    is_approved = any(k in event_type for k in BOLD_APPROVED_KEYWORDS)
+    is_rejected = any(k in event_type for k in BOLD_REJECTED_KEYWORDS)
+
+    if is_approved and order.status == "pending":
         order.status = "paid"
         db.commit()
 
@@ -215,19 +230,21 @@ async def bold_webhook(request: Request, db: Session = Depends(get_db)):
         except Exception as e:
             logger.error(f"Email de confirmación falló para orden {order.id}: {e}")
 
-    elif tx_status in BOLD_REJECTED_STATUSES and order.status == "pending":
+    elif is_rejected and order.status == "pending":
         order.status = "cancelled"
         db.commit()
-        logger.info(f"Orden {order.id} cancelada por Bold (status recibido: '{raw_status}')")
+        logger.info(
+            f"Orden {order.id} cancelada por Bold (type recibido: '{raw_type}', bold_code: {bold_code})"
+        )
 
     elif order.status != "pending":
         logger.info(
             f"Webhook de Bold ignorado para orden {order.id}: ya estaba en estado "
-            f"'{order.status}' (status recibido: '{raw_status}')"
+            f"'{order.status}' (type recibido: '{raw_type}')"
         )
     else:
         logger.warning(
-            f"Webhook de Bold con status desconocido '{raw_status}' para orden {order.id}. "
+            f"Webhook de Bold con type desconocido '{raw_type}' para orden {order.id}. "
             f"No se procesó ningún cambio de estado."
         )
 
