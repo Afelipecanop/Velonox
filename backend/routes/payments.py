@@ -321,10 +321,13 @@ def get_all_orders_admin(
             "customer_name": customer_name,
             "customer_email": customer_email,
             "customer_phone": o.customer_phone,
+            "document_type": o.document_type,
+            "document_number": o.document_number,
             "shipping_address": o.shipping_address,
             "shipping_notes": o.shipping_notes,
             "department_name": o.department_name,
             "city_name": o.city_name,
+            "city_dane_code": o.city_dane_code,
             "created_at": o.created_at.isoformat() if o.created_at else None,
             "items": [
                 {

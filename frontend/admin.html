@@ -2107,12 +2107,15 @@ function renderOrdersTable(orders) {
                     <td colspan="9" style="background:#fafafa">
                         <div style="padding:.75rem 1rem;font-size:12.5px">
                             <p><strong>Dirección:</strong> ${o.shipping_address || '—'}, ${o.city_name || ''} ${o.department_name || ''}</p>
+                            ${o.city_dane_code ? `<p><strong>Código DANE ciudad:</strong> ${o.city_dane_code}</p>` : ''}
                             ${o.shipping_notes ? `<p><strong>Notas:</strong> ${o.shipping_notes}</p>` : ''}
                             <p><strong>Teléfono:</strong> ${o.customer_phone || '—'}</p>
+                            <p><strong>Documento:</strong> ${o.document_type ? `${o.document_type} ${o.document_number || ''}` : '—'}</p>
                             <p style="margin-top:.5rem"><strong>Productos:</strong></p>
                             <ul style="margin:.25rem 0 0 1.2rem">
                                 ${o.items.map(i => `<li>${i.quantity}x ${i.product_name} — $${Number(i.unit_price).toFixed(2)} c/u</li>`).join('')}
                             </ul>
+                            <p style="margin-top:.5rem;color:var(--text-2)"><strong>Ref. Bold:</strong> ${o.bold_order_id || '—'} &nbsp;·&nbsp; <strong>Ref. Dropi:</strong> ${o.dropi_order_id || '—'}</p>
                         </div>
                     </td>
                 </tr>
