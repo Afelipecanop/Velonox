@@ -254,6 +254,7 @@
     <div class="tabs">
         <button class="tab active" onclick="switchTab('editor')"><i class="ti ti-layout-2"></i>Editor</button>
         <button class="tab" onclick="switchTab('products')"><i class="ti ti-package"></i>Productos</button>
+        <button class="tab" onclick="switchTab('orders')"><i class="ti ti-receipt"></i>Pedidos</button>
         <button class="tab" onclick="switchTab('metrics')"><i class="ti ti-chart-bar"></i>Métricas</button>
         <button class="tab" onclick="switchTab('categories')"><i class="ti ti-cat"></i>Categorías</button>
         <button class="tab" onclick="switchTab('settings')"><i class="ti ti-settings"></i>Ajustes</button>
@@ -409,6 +410,36 @@
                 <button class="btn-primary" onclick="handleAddImage()">Agregar</button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- ── Vista: Pedidos ── -->
+<div id="orders-tab" class="page-view">
+    <div style="max-width:1200px;margin:0 auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+            <h2>Todos los pedidos</h2>
+            <button onclick="loadOrders()" class="btn-del" style="color:var(--green,#1D7A4F);border-color:#c8e2d2"><i class="ti ti-refresh"></i>Actualizar</button>
+        </div>
+
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.25rem">
+            <select id="ord-filter-status" onchange="loadOrders()" style="padding:.5rem .7rem;border:2px solid #e2e8f0;border-radius:6px;font-size:.85rem;background:white;cursor:pointer">
+                <option value="">Todos los estados</option>
+                <option value="pending">Pendiente</option>
+                <option value="paid">Pagado</option>
+                <option value="cod_confirmed">Confirmado (contraentrega)</option>
+                <option value="shipped">Enviado</option>
+                <option value="delivered">Entregado</option>
+                <option value="cancelled">Cancelado</option>
+            </select>
+            <select id="ord-filter-method" onchange="loadOrders()" style="padding:.5rem .7rem;border:2px solid #e2e8f0;border-radius:6px;font-size:.85rem;background:white;cursor:pointer">
+                <option value="">Todos los métodos de pago</option>
+                <option value="anticipado">Pago anticipado</option>
+                <option value="contraentrega">Contraentrega</option>
+            </select>
+            <input type="text" id="ord-filter-search" placeholder="Buscar por nombre, email o ID..." oninput="debounceLoadOrders()" style="flex:1;min-width:220px;padding:.5rem .7rem;border:2px solid #e2e8f0;border-radius:6px;font-size:.85rem">
+        </div>
+
+        <div id="orders-table"></div>
     </div>
 </div>
 
@@ -1436,12 +1467,14 @@ function setDevice(device, btn) {
 function switchTab(tab) {
     document.getElementById("editor-tab").style.display = tab === "editor" ? "flex" : "none";
     document.getElementById("products-tab").style.display = tab === "products" ? "block" : "none";
+    document.getElementById("orders-tab").style.display = tab === "orders" ? "block" : "none";
     document.getElementById("metrics-tab").style.display = tab === "metrics" ? "block" : "none";
     document.getElementById("categories-tab").style.display = tab === "categories" ? "block" : "none";
     document.getElementById("settings-tab").style.display = tab === "settings" ? "block" : "none";
     document.querySelectorAll(".topbar .tab").forEach((btn, i) => {
-        btn.classList.toggle("active", ["editor","products","metrics","categories","settings"][i] === tab);
+        btn.classList.toggle("active", ["editor","products","orders","metrics","categories","settings"][i] === tab);
     });
+    if (tab === "orders") loadOrders();
     if (tab === "metrics") loadMetrics();
     if (tab === "categories") loadCategoriesPanel();
     if (tab === "products") loadProductCategoryOptions();
@@ -1969,6 +2002,138 @@ async function handleSaveCat() {
     } catch(e) {
         document.getElementById("cat-form-alert").innerHTML =
             `<div class="alert alert-error">${e.message}</div>`;
+    }
+}
+
+// ── Pedidos ───────────────────────────────────────────────────────────────────
+
+let ordersDebounceTimer = null;
+function debounceLoadOrders() {
+    clearTimeout(ordersDebounceTimer);
+    ordersDebounceTimer = setTimeout(loadOrders, 350);
+}
+
+const ORDER_STATUS_INFO = {
+    pending: { label: 'Pendiente' },
+    paid: { label: 'Pagado' },
+    cod_confirmed: { label: 'Confirmado (COD)' },
+    shipped: { label: 'Enviado' },
+    delivered: { label: 'Entregado' },
+    cancelled: { label: 'Cancelado' }
+};
+
+async function loadOrders() {
+    const container = document.getElementById("orders-table");
+    container.innerHTML = `<p style="color:var(--text-2)">Cargando pedidos...</p>`;
+    try {
+        const statusFilter = document.getElementById("ord-filter-status").value;
+        const method = document.getElementById("ord-filter-method").value;
+        const search = document.getElementById("ord-filter-search").value.trim();
+
+        const params = new URLSearchParams();
+        if (statusFilter) params.set("status_filter", statusFilter);
+        if (method) params.set("payment_method", method);
+        if (search) params.set("search", search);
+
+        const orders = await apiFetch(`/payments/admin/orders?${params.toString()}`);
+        renderOrdersTable(orders);
+    } catch(e) {
+        container.innerHTML = `<p style="color:#DC2626">Error cargando pedidos: ${e.message}</p>`;
+    }
+}
+
+function paymentStatusBadge(o) {
+    if (o.payment_method !== "anticipado") {
+        return `<span style="font-size:11px;color:var(--text-2)">— (contraentrega)</span>`;
+    }
+    if (o.status === "paid" || o.status === "shipped" || o.status === "delivered") {
+        return `<span style="background:#d1fae5;color:#065f46;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap">✅ Aceptado</span>`;
+    }
+    if (o.status === "cancelled") {
+        return `<span style="background:#fee2e2;color:#991b1b;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap">❌ Rechazado</span>`;
+    }
+    return `<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap">⏳ Pendiente</span>`;
+}
+
+function renderOrdersTable(orders) {
+    const container = document.getElementById("orders-table");
+    if (!orders || orders.length === 0) {
+        container.innerHTML = `<p style="color:var(--text-2)">No hay pedidos que coincidan con el filtro.</p>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="overflow-x:auto">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Método</th>
+                    <th>Pago</th>
+                    <th>Estado</th>
+                    <th>Envío (Dropi)</th>
+                    <th>Total</th>
+                    <th>Fecha</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                ${orders.map(o => `
+                <tr>
+                    <td style="font-family:monospace;font-size:12px">#${o.id.slice(0,8)}</td>
+                    <td>
+                        <div style="font-weight:600">${o.customer_name}</div>
+                        <div style="font-size:11px;color:var(--text-2)">${o.customer_email}</div>
+                    </td>
+                    <td style="font-size:12.5px">${o.payment_method === 'anticipado' ? 'Anticipado' : 'Contraentrega'}</td>
+                    <td>${paymentStatusBadge(o)}</td>
+                    <td>
+                        <select onchange="handleOrderStatusChange('${o.id}', this.value)" style="padding:.3rem .5rem;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;cursor:pointer">
+                            ${Object.keys(ORDER_STATUS_INFO).map(s => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${ORDER_STATUS_INFO[s].label}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td style="font-size:11.5px;color:var(--text-2);white-space:nowrap">${o.dropi_status === 'created' ? '✅ Creado' : o.dropi_status === 'pending_manual' ? '⚠️ Manual' : '—'}</td>
+                    <td style="font-weight:600;color:var(--green,#1D7A4F)">$${Number(o.total_amount).toFixed(2)}</td>
+                    <td style="font-size:12px;color:var(--text-2);white-space:nowrap">${o.created_at ? new Date(o.created_at).toLocaleString('es-CO', { dateStyle:'short', timeStyle:'short' }) : '—'}</td>
+                    <td><button class="btn-del" style="color:var(--green,#1D7A4F);border-color:#c8e2d2" onclick="toggleOrderDetail('${o.id}')"><i class="ti ti-eye"></i></button></td>
+                </tr>
+                <tr id="ord-detail-${o.id}" style="display:none">
+                    <td colspan="9" style="background:#fafafa">
+                        <div style="padding:.75rem 1rem;font-size:12.5px">
+                            <p><strong>Dirección:</strong> ${o.shipping_address || '—'}, ${o.city_name || ''} ${o.department_name || ''}</p>
+                            ${o.shipping_notes ? `<p><strong>Notas:</strong> ${o.shipping_notes}</p>` : ''}
+                            <p><strong>Teléfono:</strong> ${o.customer_phone || '—'}</p>
+                            <p style="margin-top:.5rem"><strong>Productos:</strong></p>
+                            <ul style="margin:.25rem 0 0 1.2rem">
+                                ${o.items.map(i => `<li>${i.quantity}x ${i.product_name} — $${Number(i.unit_price).toFixed(2)} c/u</li>`).join('')}
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                `).join('')}
+            </tbody>
+        </table>
+        </div>
+    `;
+}
+
+function toggleOrderDetail(id) {
+    const row = document.getElementById(`ord-detail-${id}`);
+    if (row) row.style.display = row.style.display === "none" ? "table-row" : "none";
+}
+
+async function handleOrderStatusChange(id, newStatus) {
+    try {
+        await apiFetch(`/payments/admin/orders/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: newStatus })
+        });
+        showToast("Estado del pedido actualizado ✅", "success");
+        loadOrders();
+    } catch(e) {
+        showToast("Error actualizando el pedido: " + e.message, "error");
+        loadOrders();
     }
 }
 

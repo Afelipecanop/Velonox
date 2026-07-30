@@ -48,3 +48,7 @@ class CheckoutRequest(BaseModel):
     department_name: str
     city_name: str
     payment_method: PaymentMethod
+
+
+class OrderStatusUpdate(BaseModel):
+    status: str

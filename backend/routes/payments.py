@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import os
 import logging
 from dotenv import load_dotenv
@@ -9,12 +9,15 @@ from database import get_db
 from models.cart import Cart, CartItem
 from models.order import Order, OrderItem
 from models.product import Product
-from schemas.order import OrderResponse, CheckoutRequest
-from middleware.auth import get_current_user
+from schemas.order import OrderResponse, CheckoutRequest, OrderStatusUpdate
+from middleware.auth import get_current_user, get_current_admin
 from services.bold import generate_integrity_signature, verify_webhook_signature, usd_to_cop
 from services.email import email_confirmacion_orden
 from services.dropi import create_dropi_order
 from services.settings import get_current_trm
+
+# Estados válidos para el flujo manual de pedidos (sin integración activa de Dropi)
+ORDER_STATUSES = ["pending", "paid", "cod_confirmed", "shipped", "delivered", "cancelled"]
 
 load_dotenv()
 
@@ -233,3 +236,129 @@ def get_order(
             detail="Orden no encontrada"
         )
     return order
+
+
+@router.get("/admin/orders")
+def get_all_orders_admin(
+    status_filter: Optional[str] = None,
+    payment_method: Optional[str] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin)
+):
+    """Lista TODOS los pedidos de la tienda (no solo los recientes). Solo administradores."""
+    query = db.query(Order)
+    if status_filter:
+        query = query.filter(Order.status == status_filter)
+    if payment_method:
+        query = query.filter(Order.payment_method == payment_method)
+
+    orders = query.order_by(Order.created_at.desc()).all()
+
+    result = []
+    for o in orders:
+        customer_name = o.guest_name or (o.user.full_name if o.user else "—")
+        customer_email = o.guest_email or (o.user.email if o.user else "—")
+
+        if search:
+            s = search.lower()
+            haystack = f"{customer_name} {customer_email} {o.id}".lower()
+            if s not in haystack:
+                continue
+
+        result.append({
+            "id": str(o.id),
+            "status": o.status,
+            "payment_method": o.payment_method,
+            "total_amount": float(o.total_amount),
+            "dropi_status": o.dropi_status,
+            "dropi_order_id": o.dropi_order_id,
+            "bold_order_id": o.bold_order_id,
+            "customer_name": customer_name,
+            "customer_email": customer_email,
+            "customer_phone": o.customer_phone,
+            "shipping_address": o.shipping_address,
+            "shipping_notes": o.shipping_notes,
+            "department_name": o.department_name,
+            "city_name": o.city_name,
+            "created_at": o.created_at.isoformat() if o.created_at else None,
+            "items": [
+                {
+                    "product_name": i.product.name if i.product else "—",
+                    "quantity": i.quantity,
+                    "unit_price": float(i.unit_price),
+                }
+                for i in o.items
+            ],
+        })
+
+    return result
+
+
+@router.patch("/admin/orders/{order_id}")
+def update_order_status_admin(
+    order_id: str,
+    data: OrderStatusUpdate,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin)
+):
+    """
+    Cambia el estado de un pedido manualmente (flujo manual mientras no haya
+    integración de Dropi para contraentrega). Si se confirma manualmente el pago
+    de un pedido 'anticipado' que seguía pending (ej. el webhook de Bold no llegó),
+    replica el mismo efecto que el webhook: descuenta stock, vacía el carrito y
+    crea la orden en Dropi.
+    """
+    if data.status not in ORDER_STATUSES:
+        raise HTTPException(status_code=400, detail="Estado inválido")
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+
+    previous_status = order.status
+
+    if (
+        data.status == "paid"
+        and previous_status == "pending"
+        and order.payment_method == "anticipado"
+    ):
+        for item in order.items:
+            product = db.query(Product).filter(Product.id == item.product_id).first()
+            if product:
+                product.stock = max(0, product.stock - item.quantity)
+
+        cart = db.query(Cart).filter(Cart.user_id == order.user_id).first()
+        if cart:
+            for cart_item in cart.items:
+                db.delete(cart_item)
+
+        try:
+            dropi_response = create_dropi_order(order, order.items, is_cod=False)
+            order.dropi_order_id = dropi_response.get("id")
+            order.dropi_status = "created"
+        except Exception as e:
+            logger.error(f"Dropi falló para orden {order.id}: {e}")
+            order.dropi_status = "pending_manual"
+
+        try:
+            recipient_email = order.guest_email or (order.user.email if order.user else None)
+            recipient_name = order.guest_name or (order.user.full_name if order.user else "Cliente")
+            if recipient_email:
+                email_confirmacion_orden(
+                    to=recipient_email,
+                    nombre=recipient_name.split()[0],
+                    order_id=str(order.id),
+                    items=[{"product": i.product, "quantity": i.quantity,
+                            "unit_price": i.unit_price, "name": i.product.name}
+                            for i in order.items],
+                    total=order.total_amount,
+                    metodo="anticipado"
+                )
+        except Exception as e:
+            logger.error(f"Email de confirmación falló para orden {order.id}: {e}")
+
+    order.status = data.status
+    db.commit()
+    db.refresh(order)
+    return {"id": str(order.id), "status": order.status}
