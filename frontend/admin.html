@@ -2042,12 +2042,17 @@ async function loadOrders() {
     }
 }
 
+// El estado real del pago de Bold no vive en un campo aparte: el webhook de Bold
+// (routes/payments.py, bold_webhook) escribe directamente sobre order.status
+// ("paid" si Bold aprueba, "cancelled" si Bold rechaza/falla, "pending" mientras
+// no llega el webhook), así que para pedidos "anticipado" order.status ES el
+// estado de confirmación de Bold.
 function paymentStatusBadge(o) {
     if (o.payment_method !== "anticipado") {
         return `<span style="font-size:11px;color:var(--text-2)">— (contraentrega)</span>`;
     }
     if (o.status === "paid" || o.status === "shipped" || o.status === "delivered") {
-        return `<span style="background:#d1fae5;color:#065f46;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap">✅ Aceptado</span>`;
+        return `<span style="background:#d1fae5;color:#065f46;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap">✅ Confirmado</span>`;
     }
     if (o.status === "cancelled") {
         return `<span style="background:#fee2e2;color:#991b1b;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap">❌ Rechazado</span>`;
@@ -2070,7 +2075,7 @@ function renderOrdersTable(orders) {
                     <th>ID</th>
                     <th>Cliente</th>
                     <th>Método</th>
-                    <th>Pago</th>
+                    <th>Pago confirmado</th>
                     <th>Estado</th>
                     <th>Envío (Dropi)</th>
                     <th>Total</th>
