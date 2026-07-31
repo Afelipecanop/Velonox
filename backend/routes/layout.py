@@ -214,9 +214,9 @@ CONTENT_PAGE_BLOCKS = {
             <p class="info-block-eyebrow">WhatsApp Business</p>
             <h3>Respuesta más rápida</h3>
             <p>Para consultas sobre productos, pedidos o asesoría personalizada. Respondemos en menos de 2 horas en horario hábil.</p>
-            <a href="https://wa.me/573108887296?text=Hola%20Velonox%2C%20tengo%20una%20consulta%20sobre%20sus%20productos" target="_blank" class="whatsapp-btn">
+            <a href="https://wa.me/573133214798?text=Hola%20Velonox%2C%20tengo%20una%20consulta%20sobre%20sus%20productos" target="_blank" class="whatsapp-btn">
                 <i class="ti ti-brand-whatsapp"></i>
-                <div><div>Escribir por WhatsApp</div><div class="whatsapp-sub">+57 310 888 7296</div></div>
+                <div><div>Escribir por WhatsApp</div><div class="whatsapp-sub">+57 313 321 4798</div></div>
             </a>
         </div>
         <div class="info-block">
@@ -514,7 +514,7 @@ CONTENT_PAGE_BLOCKS = {
             </ul>
             <h4>¿Cómo solicitar una devolución?</h4>
             <ul>
-                <li><strong>Paso 1:</strong> Escríbenos por WhatsApp (+57 310 888 7296) o formulario de contacto indicando tu número de pedido y el motivo de la devolución.</li>
+                <li><strong>Paso 1:</strong> Escríbenos por WhatsApp (+57 313 321 4798) o formulario de contacto indicando tu número de pedido y el motivo de la devolución.</li>
                 <li><strong>Paso 2:</strong> Te enviaremos las instrucciones de empaque y la dirección de envío de devolución.</li>
                 <li><strong>Paso 3:</strong> Una vez recibido e inspeccionado el producto (2 a 3 días hábiles), procesamos el reembolso.</li>
                 <li><strong>Paso 4:</strong> El reembolso se acredita al método de pago original en 5 a 10 días hábiles.</li>
@@ -625,7 +625,7 @@ CONTENT_PAGE_BLOCKS = {
     <div class="cta-box">
         <strong>¿Tienes alguna duda sobre nuestras políticas?</strong>
         <p>Estamos disponibles de lunes a viernes de 8am a 6pm y sábados de 9am a 1pm. Respondemos en menos de 2 horas.</p>
-        <a href="https://wa.me/573108887296?text=Hola%20Velonox%2C%20tengo%20una%20duda%20sobre%20sus%20pol%C3%ADticas" target="_blank" class="whatsapp-btn">
+        <a href="https://wa.me/573133214798?text=Hola%20Velonox%2C%20tengo%20una%20duda%20sobre%20sus%20pol%C3%ADticas" target="_blank" class="whatsapp-btn">
             <i class="ti ti-brand-whatsapp"></i> Hablar con nosotros
         </a>
     </div>
@@ -807,7 +807,7 @@ CONTENT_PAGE_BLOCKS = {
             <p>Estos términos se rigen por las leyes de la República de Colombia. Cualquier disputa será sometida a los tribunales competentes de Colombia, sin perjuicio de las leyes de protección al consumidor aplicables en el país de residencia del comprador.</p>
             <p>Para cualquier consulta sobre estos términos, contáctanos:</p>
             <ul>
-                <li>WhatsApp: +57 310 888 7296</li>
+                <li>WhatsApp: +57 313 321 4798</li>
                 <li>Formulario: <a href="contacto.html" style="color:#1D7A4F">velonox.co/contacto</a></li>
             </ul>
         </div>
@@ -816,7 +816,7 @@ CONTENT_PAGE_BLOCKS = {
     <div class="cta-box">
         <strong>¿Tienes dudas sobre estos términos?</strong>
         <p>Escríbenos y te explicamos cualquier punto con claridad. Respondemos en menos de 2 horas en horario hábil.</p>
-        <a href="https://wa.me/573108887296?text=Hola%20Velonox%2C%20tengo%20una%20duda%20sobre%20los%20t%C3%A9rminos%20y%20condiciones" target="_blank" class="whatsapp-btn">
+        <a href="https://wa.me/573133214798?text=Hola%20Velonox%2C%20tengo%20una%20duda%20sobre%20los%20t%C3%A9rminos%20y%20condiciones" target="_blank" class="whatsapp-btn">
             <i class="ti ti-brand-whatsapp"></i> Hablar con nosotros
         </a>
     </div>
@@ -865,7 +865,7 @@ CONTENT_PAGE_BLOCKS = {
     <p class="cta-eyebrow">¿No sabes por dónde empezar?</p>
     <h2>Habla con nosotros</h2>
     <p>Te ayudamos a elegir el set ideal para tu cocina y tu presupuesto.</p>
-    <a href="https://wa.me/573108887296?text=Hola%20Velonox%2C%20quiero%20asesor%C3%ADa%20para%20elegir%20mis%20productos" target="_blank" class="btn-primary">
+    <a href="https://wa.me/573133214798?text=Hola%20Velonox%2C%20quiero%20asesor%C3%ADa%20para%20elegir%20mis%20productos" target="_blank" class="btn-primary">
         <i class="ti ti-brand-whatsapp"></i> Asesoría por WhatsApp
     </a>
 </section>
@@ -1039,7 +1039,7 @@ CONTENT_PAGE_BLOCKS = {
     <p class="eyebrow">¿Necesitas ayuda?</p>
     <h2>Te ayudamos a<br>elegir lo <em>ideal.</em></h2>
     <p class="sub">Cuéntanos cómo cocinas y te recomendamos el set perfecto para tu hogar.</p>
-    <a href="https://wa.me/573108887296?text=Hola%20Velonox%2C%20necesito%20ayuda%20para%20elegir%20productos" target="_blank" class="btn-wa">
+    <a href="https://wa.me/573133214798?text=Hola%20Velonox%2C%20necesito%20ayuda%20para%20elegir%20productos" target="_blank" class="btn-wa">
         <i class="ti ti-brand-whatsapp"></i>
         Asesoría gratis por WhatsApp
     </a>

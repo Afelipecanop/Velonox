@@ -53,7 +53,7 @@
     "  font-family: 'DM Sans', Arial, sans-serif;\n" +
     "  position: fixed;\n" +
     "  z-index: 999999;\n" +
-    "  bottom: 24px;\n" +
+    "  bottom: 90px;\n" +
     "  right: 24px;\n" +
     "}\n" +
     "#vlx-chat-root * { box-sizing: border-box; }\n" +
@@ -163,7 +163,7 @@
     "#vlx-send:disabled { opacity: .5; cursor: default; }\n" +
     "#vlx-send svg { width: 16px; height: 16px; }\n" +
     "@media (max-width: 480px) {\n" +
-    "  #vlx-chat-root { right: 12px; bottom: 12px; }\n" +
+    "  #vlx-chat-root { right: 12px; bottom: 76px; }\n" +
     // En reposo (sin teclado) el panel es compacto, ancla junto a la burbuja y
     // se ajusta al contenido (mensaje de bienvenida) con un tope de alto.
     "  #vlx-panel {\n" +

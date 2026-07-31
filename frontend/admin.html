@@ -698,6 +698,7 @@
 <script src="/js/api.js"></script>
 <script>
 const API = "https://e-commerce-con-fastapi-y-postgreqsl-production.up.railway.app";
+const PROD_URL = "https://velonox.co"; // el preview del editor siempre carga la tienda real en producción, nunca el frontend local
 
 // ── Estado global ─────────────────────────────────────────────────────────────
 let layout = [];
@@ -1168,7 +1169,7 @@ async function renderPreview() {
     // y se inyectan los bloques editados en vivo dentro de su contenedor, para
     // que el preview sea idéntico a producción y navegue de forma consistente.
     try {
-        const res = await fetch(page.file);
+        const res = await fetch(`${PROD_URL}/${page.file}`);
         let raw = await res.text();
         // El catálogo necesita una categoría para no redirigir a categorias.html;
         // en el preview (srcdoc, sin URL real) se la damos por una variable global.
@@ -1181,6 +1182,9 @@ async function renderPreview() {
         // del iframe en vez de la tienda pública.
         raw = raw.replace(/<a href="[^"]*admin\.html"([^>]*)id="nav-admin"([^>]*)>Admin<\/a>/,
             '<a href="#" id="nav-admin" style="display:none" onclick="return false">Admin</a>');
+        // <base> fuerza que todo asset con ruta relativa/absoluta (css, js, imágenes)
+        // cargue desde producción, sin importar en qué origen esté abierto admin.html.
+        raw = raw.replace('<head>', `<head><base href="${PROD_URL}/">`);
         const blocksHTML = layout.filter(b => b.is_visible).map(b => renderBlock(b)).join("\n");
         const html = raw.replace(
             '<div id="layout-container"></div>',
@@ -1190,7 +1194,7 @@ async function renderPreview() {
         frame.srcdoc = html;
     } catch(e) {
         frame.removeAttribute("srcdoc");
-        frame.src = page.file;
+        frame.src = `${PROD_URL}/${page.file}`;
     }
 }
 
@@ -1208,7 +1212,7 @@ async function loadPage(value) {
     } else {
         const frame = document.getElementById("preview-frame");
         frame.removeAttribute("srcdoc");
-        frame.src = value;
+        frame.src = `${PROD_URL}/${value}`;
         urlEl.innerHTML = `<i class="ti ti-eye"></i>Viendo: ${value} (solo vista previa, no editable)`;
         layout = [];
         selectedBlockId = null;

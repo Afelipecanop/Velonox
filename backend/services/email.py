@@ -81,7 +81,7 @@ def email_bienvenida(to: str, nombre: str, password_temp: str):
               </table>
 
               <p style="font-size:12px;color:#B0BEB8;line-height:1.6;margin:0">
-                Si no realizaste esta compra o no reconoces esta cuenta, contáctanos por WhatsApp al +57 310 888 7296.
+                Si no realizaste esta compra o no reconoces esta cuenta, contáctanos por WhatsApp al +57 313 321 4798.
               </p>
             </td></tr>
 
@@ -172,7 +172,7 @@ def email_confirmacion_orden(to: str, nombre: str, order_id: str, items: list, t
               </table>
 
               <p style="font-size:12px;color:#B0BEB8;line-height:1.6;margin:0">
-                ¿Tienes dudas? Escríbenos por WhatsApp al +57 310 888 7296 o visita <a href="{FRONTEND_URL}/contacto.html" style="color:#1D7A4F">velonox.co/contacto</a>
+                ¿Tienes dudas? Escríbenos por WhatsApp al +57 313 321 4798 o visita <a href="{FRONTEND_URL}/contacto.html" style="color:#1D7A4F">velonox.co/contacto</a>
               </p>
             </td></tr>
 
