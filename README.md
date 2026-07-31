@@ -31,6 +31,7 @@ Autenticación · Catálogo · Carrito · Checkout (registrado e invitado) · Pa
 - [Stack técnico](#-stack-técnico)
 - [Estructura del proyecto](#-estructura-del-proyecto)
 - [Instalación rápida](#-instalación-rápida)
+- [Cómo correr los tests](#-cómo-correr-los-tests)
 - [Variables de entorno](#-variables-de-entorno)
 - [Despliegue](#-despliegue)
 - [Mantenimiento continuo](#-mantenimiento-continuo)
@@ -77,12 +78,12 @@ flowchart LR
         METRICS["Métricas de negocio"]
     end
 
-    DB[("🗄️ PostgreSQL")]
-    BOLD["💳 Bold\nPagos + Webhooks"]
-    DROPI["📦 Dropi\nFulfillment"]
-    TRM["💱 TRM\nUSD ⇄ COP"]
-    AI["🤖 IA\nGenerador de bloques visuales"]
-    N8N["💬 n8n\nAsistente de chat"]
+    DB[(" PostgreSQL")]
+    BOLD[" Bold\nPagos + Webhooks"]
+    DROPI[" Dropi\nFulfillment"]
+    TRM[" TRM\nUSD ⇄ COP"]
+    AI[" IA\nGenerador de bloques visuales"]
+    N8N[" n8n\nAsistente de chat"]
 
     FE -->|HTTPS / JSON| API
     API --> AUTH & CATALOG & CART & METRICS
@@ -199,6 +200,20 @@ uvicorn main:app --reload
 
 # 6. Servir el frontend
 #    Abrir frontend/index.html o servirlo con un servidor estático local
+```
+
+## 🧪 Cómo correr los tests
+
+El backend tiene una suite de pytest (`backend/tests/`) que corre contra una base de datos SQLite en memoria y nunca toca `DATABASE_URL` real ni servicios externos (Bold, Dropi, Resend, TRM y Google quedan mockeados o deshabilitados en el entorno de test).
+
+```bash
+cd backend
+pip install -r requirements-dev.txt   # agrega pytest y pytest-cov sobre requirements.txt
+
+pytest                     # correr toda la suite
+pytest --cov=.             # con reporte de cobertura (usa backend/.coveragerc)
+pytest --cov=. --cov-report=term-missing   # cobertura + líneas sin cubrir
+pytest tests/test_payments.py -v           # un archivo puntual
 ```
 
 ## 🔐 Variables de entorno
