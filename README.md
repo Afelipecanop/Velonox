@@ -59,6 +59,7 @@ El backend expone una API REST con **FastAPI** sobre **PostgreSQL** (SQLAlchemy 
 | Panel administrativo | ✅ Operativo |
 | Métricas de negocio | ✅ Operativo |
 | Conversión USD/COP vía TRM | ✅ Operativo |
+| Testing automatizado (backend) | ✅ ~95% cobertura |
 
 De aquí en adelante, el trabajo sobre el repositorio consiste en **nuevas implementaciones puntuales y corrección de bugs** que se detecten en producción, no en desarrollo de funcionalidades base.
 
@@ -144,6 +145,8 @@ flowchart LR
 - Nueva pestaña "Pedidos" en el panel administrativo: listado completo de órdenes (no solo las 8 más recientes de Métricas), con filtros por estado/método de pago/búsqueda, cambio manual de estado y un indicador visual de si el pago con Bold fue confirmado, pendiente o rechazado — necesario mientras no se cuenta con credenciales de Dropi para automatizar contraentrega. Cada pedido tiene un detalle expandible con dirección de envío, teléfono, tipo/número de documento, código DANE de la ciudad y referencias Bold/Dropi, para poder crear la guía de envío en Dropi manualmente.
 - Corrección de bug real: el webhook de Bold no actualizaba el estado de los pedidos porque el payload real que envía Bold (formato tipo CloudEvents, con el estado en `type` y la referencia en `data.metadata.reference`) no coincidía con la estructura que asumía el backend; se corrigió el parseo.
 - Corrección de bug real: CORS no incluía el método `PATCH`, lo que rompía con un 400 en preflight el cambio de estado de pedidos desde el admin.
+- Suite de tests automatizados para el backend (`backend/tests/`, pytest), partiendo de 0% de cobertura: auth, productos (variantes/imágenes), categorías, carrito, pagos (incluyendo parseo e idempotencia del webhook de Bold), checkout invitado, layout/CMS (incluyendo generación de bloques con IA) y métricas/ajustes — ~95% de cobertura, sin tocar la base real ni servicios externos.
+- Eliminado el campo legacy `ProductPage.variants` (concepto viejo de variantes por tallas/colores, distinto de la tabla `product_variants` real): confirmado muerto en ambos frontends y sin datos reales en producción, se quitó del modelo, schema y rutas, con su migración de Alembic correspondiente.
 
 ##  Stack técnico
 

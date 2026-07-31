@@ -1,6 +1,6 @@
 ﻿================================================================================
 INFORME DETALLADO DEL PROYECTO E-COMMERCE CON FASTAPI Y POSTGRESQL
-Fecha de Actualización: Julio 30, 2026
+Fecha de Actualización: Julio 31, 2026
 ================================================================================
 
 1. DESCRIPCIÓN GENERAL
@@ -19,7 +19,10 @@ velonox.co. Todos los módulos principales están completos y estables.
 - Frontend público: funcional y alineado con la experiencia de compra
 - Panel de administración: operativo para gestión de productos, layout y ajustes
 - Integraciones externas: activas para pagos (Bold), fulfillment (Dropi), TRM y IA
-- Testing automatizado: 0% (sin suite implementada en este repositorio)
+- Testing automatizado: suite de pytest en backend/tests/, ~95% de cobertura
+  (auth, productos, categorías, carrito, pagos, checkout invitado, layout/CMS
+  y métricas/ajustes; corre contra SQLite en memoria, sin tocar la base real
+  ni servicios externos)
 
 El proyecto salió de la etapa de desarrollo de funcionalidades base. De aquí en
 adelante, el trabajo sobre el repositorio consiste en nuevas implementaciones
@@ -232,6 +235,27 @@ desarrollo de funcionalidades base.
 - Corrección de bug real: la configuración de CORS en main.py no incluía el
   método PATCH, lo que causaba un 400 en la petición preflight y rompía el
   cambio de estado de pedidos desde el panel admin.
+- Se implementó una suite de tests automatizados para el backend (pytest,
+  backend/tests/), partiendo de 0% de cobertura: autenticación, productos
+  (incluyendo variantes e imágenes), categorías, carrito, pagos (incluyendo
+  el parseo del webhook de Bold y su idempotencia), checkout invitado,
+  layout/CMS (incluyendo generación de bloques con IA) y métricas/ajustes.
+  Corre contra una base SQLite en memoria y mockea todos los servicios
+  externos (Bold, Dropi, Resend, TRM, Google, Anthropic); nunca toca la
+  base de datos real. Cobertura final: ~95%.
+- Se eliminó el campo legacy ProductPage.variants (concepto viejo de
+  variantes por tallas/colores dentro de las páginas de producto, distinto
+  de la tabla product_variants real): se confirmó que ningún frontend lo
+  escribía ni lo leía y que no había datos reales en producción, y se quitó
+  del modelo, el schema y las rutas (routes/product_pages.py), con su
+  migración de Alembic correspondiente (DROP COLUMN).
+- Incidente real y corregido: al correr esa migración contra producción
+  antes de desplegar el código correspondiente, el backend viejo (que
+  todavía leía la columna eliminada) devolvió 500 en GET /product-pages/{id}
+  durante aproximadamente 10 segundos, hasta que se hizo el deploy del
+  código actualizado. Lección: una migración que es un cambio incompatible
+  para el código actualmente desplegado debe ir acompañada del deploy del
+  código, no tratarse como un paso independiente.
 
 
 5. INFRAESTRUCTURA DEL PROYECTO
