@@ -14,24 +14,13 @@ class ProductFeature(BaseModel):
     text: str
 
 
-class ProductVariantOption(BaseModel):
-    label: str
-    value: str
-
-
-class ProductVariant(BaseModel):
-    name: str
-    options: List[ProductVariantOption]
-
-
 class ProductPageUpdate(BaseModel):
     use_custom_layout: Optional[bool] = False
     description: Optional[str] = None
     specs: Optional[List[ProductSpec]] = None
     features: Optional[List[ProductFeature]] = None
-    variants: Optional[List[ProductVariant]] = None
     custom_blocks: Optional[List[Dict[str, Any]]] = None
-    category: Optional[str] = None 
+    category: Optional[str] = None
 
 
 class ProductPageResponse(BaseModel):
@@ -40,7 +29,6 @@ class ProductPageResponse(BaseModel):
     description: Optional[str] = None
     specs: Optional[List[ProductSpec]] = None
     features: Optional[List[ProductFeature]] = None
-    variants: Optional[List[ProductVariant]] = None
     custom_blocks: Optional[List[Dict[str, Any]]] = None
     category: Optional[str] = None
     class Config:

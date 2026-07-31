@@ -13,7 +13,6 @@ class ProductPage(Base):
     description = Column(Text, nullable=True)    # Descripción larga
     specs = Column(Text, nullable=True)          # Especificaciones en JSON
     features = Column(Text, nullable=True)       # Características en JSON
-    variants = Column(Text, nullable=True)       # Variantes (tallas, colores) en JSON
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     

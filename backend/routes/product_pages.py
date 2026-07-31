@@ -50,7 +50,6 @@ def get_product_page(product_id: UUID, db: Session = Depends(get_db)):
             description=product.description or "Producto de acero inoxidable grado 304. Calidad premium para el hogar latinoamericano.",
             specs=DEFAULT_SPECS,
             features=DEFAULT_FEATURES,
-            variants=[],
             custom_blocks=[]
         )
 
@@ -60,7 +59,6 @@ def get_product_page(product_id: UUID, db: Session = Depends(get_db)):
         description=page.description or product.description,
         specs=json.loads(page.specs) if page.specs else DEFAULT_SPECS,
         features=json.loads(page.features) if page.features else DEFAULT_FEATURES,
-        variants=json.loads(page.variants) if page.variants else [],
         custom_blocks=json.loads(page.custom_blocks) if page.custom_blocks else []
     )
 
@@ -96,8 +94,6 @@ def update_product_page(
         page.specs = json.dumps([s.model_dump() for s in data.specs])
     if data.features is not None:
         page.features = json.dumps([f.model_dump() for f in data.features])
-    if data.variants is not None:
-        page.variants = json.dumps([v.model_dump() for v in data.variants])
     if data.custom_blocks is not None:
         page.custom_blocks = json.dumps(data.custom_blocks)
 
@@ -110,7 +106,6 @@ def update_product_page(
         description=page.description,
         specs=json.loads(page.specs) if page.specs else DEFAULT_SPECS,
         features=json.loads(page.features) if page.features else DEFAULT_FEATURES,
-        variants=json.loads(page.variants) if page.variants else [],
         custom_blocks=json.loads(page.custom_blocks) if page.custom_blocks else []
     )
 
