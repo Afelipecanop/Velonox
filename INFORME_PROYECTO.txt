@@ -1,6 +1,6 @@
 ﻿================================================================================
 INFORME DETALLADO DEL PROYECTO E-COMMERCE CON FASTAPI Y POSTGRESQL
-Fecha de Actualización: Julio 31, 2026
+Fecha de Actualización: Agosto 18, 2026
 ================================================================================
 
 1. DESCRIPCIÓN GENERAL
@@ -117,7 +117,8 @@ PÁGINAS IMPLEMENTADAS:
 - nosotros.html: información institucional y propuesta de valor
 - contacto.html: formulario de contacto y canal de comunicación
 - politicas.html y terminos.html: información legal y condiciones de uso
-- regalos.html y sets.html: páginas temáticas de contenido comercial
+- sets.html: página temática de contenido comercial (regalos.html se eliminó, ver
+  Novedades recientes)
 - 404.html: página de error no encontrado
 
 COMPONENTES DESTACADOS:
@@ -165,7 +166,7 @@ COMPONENTES DESTACADOS:
 - Manejo de stock al procesar órdenes
 - Integración con IA para generación de contenido visual
 - Envío de correos transaccionales
-- Analítica web con Cloudflare
+- Analítica web con Cloudflare Web Analytics y Google Analytics (gtag.js)
 - Endpoints de salud y verificación de base de datos
 - Asistente de chat conectado a un flujo de automatización en n8n (única
   integración que el frontend llama de forma directa, sin proxy del backend,
@@ -256,6 +257,23 @@ desarrollo de funcionalidades base.
   código actualizado. Lección: una migración que es un cambio incompatible
   para el código actualmente desplegado debe ir acompañada del deploy del
   código, no tratarse como un paso independiente.
+- Se eliminó frontend/regalos.html junto con todos sus enlaces de navegación
+  y footer, y su entrada en EDITABLE_PAGES/selector de páginas del admin.
+  La ruta /regalos.html ahora responde 404 a través de la regla catch-all
+  de frontend/_redirects, sin necesidad de una redirección especial.
+- Se integró Google Analytics (gtag.js, ID G-J3ENJRV492) en las 19 páginas
+  HTML del frontend, insertando el script justo después de <head> en cada una.
+- Corrección de bug real: el script de Cloudflare Web Analytics se cargaba
+  con type='module' en vez de defer (el snippet oficial de Cloudflare usa
+  defer). Al ser un script cross-origin cargado como módulo ES, el navegador
+  fuerza un fetch en modo CORS y aplica comprobaciones de seguridad de
+  módulos, lo que generaba en consola errores de CORS y de integridad (SRI)
+  -sin que existiera ningún atributo integrity real en el HTML- en varias
+  páginas (index.html, cart.html, admin.html, terminos.html, nosotros.html,
+  product.html, contacto.html y politicas.html). Se verificó contra el HTML
+  servido en producción (velonox.co) y el historial completo de git antes de
+  corregir, confirmando que nunca existió un atributo integrity/crossorigin;
+  se corrigió el atributo a defer en las 8 páginas afectadas.
 
 
 5. INFRAESTRUCTURA DEL PROYECTO
@@ -473,9 +491,10 @@ un framework complejo.
   Panel administrativo principal. Aquí se concentra la edición visual del layout,
   la administración de productos, métricas y ajustes del negocio.
 
-- frontend/categorias.html, regalos.html, sets.html, nosotros.html,
+- frontend/categorias.html, sets.html, nosotros.html,
   contacto.html, politicas.html, terminos.html
-  Páginas informativas y temáticas que complementan la experiencia comercial.
+  Páginas informativas y temáticas que complementan la experiencia comercial
+  (regalos.html se eliminó, ver Novedades recientes).
 
 - frontend/css/styles.css
   Estilos globales de la tienda.

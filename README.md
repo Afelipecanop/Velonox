@@ -114,7 +114,7 @@ flowchart LR
 - Checkout con dos modalidades: pago anticipado y contraentrega
 - Checkout invitado sin registro previo
 - Panel administrativo para layout, productos, categorías, marca y métricas
-- Páginas institucionales, contacto, políticas, regalos y sets
+- Páginas institucionales, contacto, políticas y sets
 - Widget de chat (asistente virtual) embebido en las páginas comerciales, conectado a un flujo de automatización en n8n
 
 </td>
@@ -147,6 +147,8 @@ flowchart LR
 - Corrección de bug real: CORS no incluía el método `PATCH`, lo que rompía con un 400 en preflight el cambio de estado de pedidos desde el admin.
 - Suite de tests automatizados para el backend (`backend/tests/`, pytest), partiendo de 0% de cobertura: auth, productos (variantes/imágenes), categorías, carrito, pagos (incluyendo parseo e idempotencia del webhook de Bold), checkout invitado, layout/CMS (incluyendo generación de bloques con IA) y métricas/ajustes — ~95% de cobertura, sin tocar la base real ni servicios externos.
 - Eliminado el campo legacy `ProductPage.variants` (concepto viejo de variantes por tallas/colores, distinto de la tabla `product_variants` real): confirmado muerto en ambos frontends y sin datos reales en producción, se quitó del modelo, schema y rutas, con su migración de Alembic correspondiente.
+- Integración de Google Analytics (gtag.js, `G-J3ENJRV492`) en las 19 páginas HTML del frontend.
+- Corrección de bug real: el script de Cloudflare Web Analytics se cargaba con `type='module'` en vez de `defer` (el snippet oficial de Cloudflare usa `defer`). Un script cross-origin cargado como módulo ES fuerza un fetch en modo CORS y activa comprobaciones de seguridad de módulos, lo que producía en consola errores de CORS y de integridad (SRI) — sin que existiera ningún atributo `integrity` real en el HTML — en `index.html`, `cart.html`, `admin.html`, `terminos.html`, `nosotros.html`, `product.html`, `contacto.html` y `politicas.html`. Se corrigió a `defer` en las 8 páginas.
 
 ##  Stack técnico
 
@@ -161,7 +163,7 @@ flowchart LR
 | **Fulfillment** | Dropi |
 | **Contenido generativo** | API de IA para bloques visuales (server-side) |
 | **Asistente de chat** | Widget propio (`js/velonox-chat-widget.js`) conectado a n8n |
-| **Analítica** | Cloudflare Web Analytics |
+| **Analítica** | Cloudflare Web Analytics + Google Analytics (gtag.js) |
 | **Infraestructura** | Railway (backend) · Cloudflare Pages (frontend) |
 
 ## 📁 Estructura del proyecto
