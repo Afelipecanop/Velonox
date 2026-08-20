@@ -86,6 +86,18 @@ async def guest_checkout(
         order_items_data.append({"product": product, "quantity": item.quantity})
 
     # ── 2. Buscar o crear usuario ────────────────────────────────────────────
+    # RIESGO DE SEGURIDAD CONOCIDO (no corregido a propósito, ver auditoría de
+    # agosto 2026): si el email ya corresponde a una cuenta existente, esta orden
+    # se asocia igual a ese user_id real sin verificar que quien hace el checkout
+    # sea el dueño del correo — cualquiera puede "ensuciar" el historial de
+    # pedidos de una cuenta ajena. La corrección obvia es dejar `user_id` en NULL
+    # en ese caso (la columna orders.user_id es nullable en models/order.py), pero
+    # la tabla real en Postgres todavía tiene esa columna como NOT NULL desde la
+    # migración inicial (ff0162fd9e2e_crear_tablas_iniciales.py) — nunca se migró
+    # a nullable pese a que el modelo ya lo declara así. Poner NULL aquí revienta
+    # con IntegrityError contra la DB real (confirmado manualmente). Corregirlo
+    # requiere una migración de Alembic (`ALTER COLUMN user_id DROP NOT NULL`),
+    # que no se generó ni se aplicó a propósito — pendiente de decisión.
     user = db.query(User).filter(User.email == data.email).first()
     cuenta_nueva = False
     temp_password = None
@@ -160,7 +172,6 @@ async def guest_checkout(
             "api_key": BOLD_API_KEY,
             "signature": signature,
             "redirection_url": f"{FRONTEND_URL}/pedido-confirmado.html?order_id={order.id}",
-            "cuenta_creada": cuenta_nueva,
         }
 
     # ── 4b. Flujo contraentrega: confirmar ya, enviar a Dropi, enviar email ─────
@@ -191,6 +202,5 @@ async def guest_checkout(
         "flow": "cod",
         "total": total,
         "payment_method": data.payment_method,
-        "cuenta_creada": cuenta_nueva,
         "mensaje": "Pedido creado exitosamente"
     }
