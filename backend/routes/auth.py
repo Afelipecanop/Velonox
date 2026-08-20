@@ -18,12 +18,14 @@ from middleware.auth import get_current_user
 from schemas.user import ForgotPasswordRequest, ResetPasswordRequest
 from services.auth import create_password_reset_token, get_valid_reset_token, consume_reset_token
 from services.email import email_recuperacion_password
-from main import limiter
+from main import limiter, get_client_ip
+import logging
 import os
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://velonox.co")
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -63,6 +65,9 @@ def login(request: Request, user_data: UserLogin, db: Session = Depends(get_db))
 
     user = authenticate_user(db, user_data.email, user_data.password)
     if not user:
+        logger.warning(
+            f"Login fallido para email='{user_data.email}' desde IP={get_client_ip(request)}"
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos",
