@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
@@ -14,6 +14,7 @@ from services.email import email_bienvenida
 from services.bold import generate_integrity_signature, usd_to_cop
 from services.settings import get_current_trm
 from services.dropi import create_dropi_order
+from main import limiter
 import os
 import logging
 
@@ -54,7 +55,9 @@ def generate_temp_password(length: int = 10) -> str:
 
 
 @router.post("/checkout")
+@limiter.limit("5/minute")
 async def guest_checkout(
+    request: Request,
     data: GuestCheckoutRequest,
     db: Session = Depends(get_db)
 ):

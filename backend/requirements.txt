@@ -32,6 +32,7 @@ requests==2.34.2
 resend==2.34.0
 rsa==4.9.1
 six==1.17.0
+slowapi==0.1.10
 SQLAlchemy==2.0.50
 starlette==1.2.1
 # stripe==15.2.0  # ya no se usa, se migro a Bold

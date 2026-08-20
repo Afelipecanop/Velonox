@@ -15,6 +15,7 @@ from services.bold import generate_integrity_signature, verify_webhook_signature
 from services.email import email_confirmacion_orden
 from services.dropi import create_dropi_order
 from services.settings import get_current_trm
+from main import limiter
 
 # Estados válidos para el flujo manual de pedidos (sin integración activa de Dropi)
 ORDER_STATUSES = ["pending", "paid", "cod_confirmed", "shipped", "delivered", "cancelled"]
@@ -29,7 +30,9 @@ logger = logging.getLogger("velonox.payments")
 
 
 @router.post("/checkout")
+@limiter.limit("10/minute")
 def create_checkout(
+    request: Request,
     data: CheckoutRequest,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)

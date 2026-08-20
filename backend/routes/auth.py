@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
@@ -18,6 +18,7 @@ from middleware.auth import get_current_user
 from schemas.user import ForgotPasswordRequest, ResetPasswordRequest
 from services.auth import create_password_reset_token, get_valid_reset_token, consume_reset_token
 from services.email import email_recuperacion_password
+from main import limiter
 import os
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://velonox.co")
@@ -26,7 +27,8 @@ router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     """Registra un nuevo usuario y crea su carrito automáticamente."""
 
     # Verifica que el email no esté ya registrado
@@ -55,7 +57,8 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(user_data: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, user_data: UserLogin, db: Session = Depends(get_db)):
     """Autentica al usuario y devuelve un token JWT."""
 
     user = authenticate_user(db, user_data.email, user_data.password)
@@ -112,7 +115,8 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
-def forgot_password(data: ForgotPasswordRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def forgot_password(request: Request, data: ForgotPasswordRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Genera un token de recuperación y envía el email, si el usuario existe.
 
     Siempre responde con el mismo mensaje genérico, exista o no la cuenta,

@@ -33,7 +33,7 @@ from fastapi.testclient import TestClient
 
 from database import Base, get_db
 import models  # noqa: F401 - import side effect registers every table on Base.metadata
-from main import app
+from main import app, limiter
 from models.user import User
 from models.category import Category
 from models.product import Product
@@ -42,6 +42,12 @@ from models.password_reset_token import PasswordResetToken
 from services.auth import hash_password, create_access_token
 
 TEST_PASSWORD = "SuperSecreta123!"
+
+# Todas las llamadas del TestClient comparten la misma "IP" (no hay proxy real
+# de por medio), así que el rate limiting de slowapi contaría peticiones de
+# tests completamente distintos como si fueran del mismo cliente y rompería
+# el suite con 429s falsos. Se desactiva el enforcement solo en tests.
+limiter.enabled = False
 
 
 def _sqlite_expires_at_is_tz_aware(target, context, attrs=None):
