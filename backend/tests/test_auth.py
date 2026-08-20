@@ -43,7 +43,9 @@ def test_register_duplicate_email(client, normal_user):
         "full_name": "Otro Nombre",
     })
     assert resp.status_code == 400
-    assert "ya está registrado" in resp.json()["detail"]
+    # Mensaje deliberadamente genérico (no confirma que el email ya existe) para
+    # no permitir enumeración de usuarios registrados vía /auth/register.
+    assert "ya está registrado" not in resp.json()["detail"]
 
 
 def test_register_invalid_email_format(client):

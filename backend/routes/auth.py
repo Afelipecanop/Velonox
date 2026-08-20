@@ -33,11 +33,13 @@ logger = logging.getLogger(__name__)
 def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     """Registra un nuevo usuario y crea su carrito automáticamente."""
 
-    # Verifica que el email no esté ya registrado
+    # Verifica que el email no esté ya registrado. El mensaje es deliberadamente
+    # genérico (no confirma ni niega que la cuenta exista) para no permitir
+    # enumeración de usuarios registrados — mismo patrón que /auth/forgot-password.
     if get_user_by_email(db, user_data.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Este email ya está registrado"
+            detail="No fue posible completar el registro. Si ya tienes una cuenta, intenta iniciar sesión."
         )
 
     # Crea el usuario con la contraseña hasheada
