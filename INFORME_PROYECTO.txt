@@ -1,6 +1,6 @@
 ﻿================================================================================
 INFORME DETALLADO DEL PROYECTO E-COMMERCE CON FASTAPI Y POSTGRESQL
-Fecha de Actualización: Agosto 18, 2026
+Fecha de Actualización: Agosto 19, 2026
 ================================================================================
 
 1. DESCRIPCIÓN GENERAL
@@ -87,6 +87,8 @@ PRINCIPALES FUNCIONALIDADES BACKEND:
 - Endpoints dinámicos para personalizar páginas de producto
 - Endpoints de métricas para seguimiento del negocio
 - Endpoints de configuración de la tienda, colores, logo, slogan y TRM
+- Rate limiting por IP (slowapi) en endpoints de autenticación y checkout, y
+  logging de intentos de login fallidos y rechazos de acceso admin
 
 SERVICIOS Y CAPAS:
 - Auth service: registro, login y generación de tokens JWT
@@ -274,6 +276,52 @@ desarrollo de funcionalidades base.
   servido en producción (velonox.co) y el historial completo de git antes de
   corregir, confirmando que nunca existió un atributo integrity/crossorigin;
   se corrigió el atributo a defer en las 8 páginas afectadas.
+- Auditoría de seguridad rápida del backend (agosto 19-20, 2026) y set de
+  correcciones aplicado sobre los hallazgos, en commits separados y
+  verificados uno por uno:
+  - Rate limiting con la librería slowapi en los endpoints más expuestos a
+    abuso: /auth/login, /auth/register y /auth/forgot-password (5/minuto),
+    /guest/checkout (5/minuto) y /payments/checkout (10/minuto). La IP real
+    del cliente se identifica vía el header X-Forwarded-For, ya que Railway
+    corre el backend detrás de un proxy (get_remote_address por sí solo
+    devolvía la IP del proxy, no la del cliente). El webhook
+    /payments/bold/webhook queda deliberadamente sin límite, porque lo llama
+    la pasarela de pago, no un usuario final.
+  - Se agregó logging.basicConfig() global en main.py (el proyecto no tenía
+    ninguna configuración de logging antes de esto) y se agregó logging en
+    nivel WARNING para intentos de login fallidos (con el email, nunca la
+    contraseña) y para rechazos de autorización admin/token inválido (con
+    user_id/email y la IP), sin cambiar ningún status code ni mensaje de
+    error visible para el cliente. Pensado para poder detectar fuerza bruta
+    o intentos de escalar privilegios revisando los logs de Railway.
+  - Corrección de una fuga de enumeración de usuarios en POST /auth/register:
+    el mensaje de error cuando el email ya existía revelaba explícitamente
+    que la cuenta estaba registrada. Se reemplazó por un mensaje genérico,
+    mismo patrón que ya usaba correctamente /auth/forgot-password, sin
+    cambiar el status code (400) ni el resto del flujo de registro.
+  - Corrección de una fuga de enumeración de usuarios en POST
+    /guest/checkout: la respuesta ya no incluye el campo que revelaba si el
+    email ingresado correspondía a una cuenta existente. Además, un checkout
+    de invitado con el email de una cuenta ya registrada ya no asocia la
+    orden a esa cuenta real sin verificar que quien hace el checkout es su
+    dueño -antes cualquiera podía "ensuciar" el historial de pedidos de una
+    cuenta ajena solo conociendo su email-; ahora la orden queda anónima
+    (user_id NULL).
+  - Migración de Alembic (8d33da579547) para permitir orders.user_id nulo,
+    requisito del fix anterior: la tabla orders en Postgres tenía esa
+    columna como NOT NULL desde la migración inicial del proyecto
+    (ff0162fd9e2e), aunque el modelo SQLAlchemy (models/order.py) ya la
+    declaraba nullable=True desde antes -un desfase entre el modelo y el
+    esquema real que nunca se había detectado-. Se generó la migración, se
+    aplicó primero en la base de datos local para verificar el fix contra
+    Postgres real (no solo contra el SQLite en memoria de los tests) y
+    finalmente se desplegó a producción junto con el resto de estos commits.
+  - Todo el trabajo se verificó manualmente en cada paso contra un servidor
+    local (no solo con la suite de pytest): login válido/inválido, registro
+    con email nuevo/duplicado, checkout invitado con email nuevo/existente,
+    checkout autenticado, el webhook de Bold con firma válida, y una prueba
+    explícita de 6 intentos rápidos de login confirmando el 429 en el sexto
+    sin afectar el uso normal de un solo usuario.
 
 
 5. INFRAESTRUCTURA DEL PROYECTO
@@ -336,6 +384,12 @@ La infraestructura actual contempla:
 - Gestión de secretos vía variables de entorno
 - Integración con webhooks para confirmación de pagos de forma asíncrona
 - Separación de roles entre usuarios y administradores
+- Rate limiting por IP (slowapi) en endpoints de login, registro,
+  recuperación de contraseña y checkout, para mitigar fuerza bruta y abuso
+- Logging de intentos de login fallidos y rechazos de autorización admin,
+  con IP del cliente, para poder detectar patrones de ataque en los logs
+- Mensajes de error genéricos en registro y checkout invitado para no
+  permitir enumerar qué emails están registrados en la tienda
 
 5.5 ESTADO DE LA INFRAESTRUCTURA
 ------------------------------------
@@ -411,8 +465,13 @@ El backend está construido sobre FastAPI y SQLAlchemy, con una organización mo
 
 - backend/main.py
   Punto de entrada de la aplicación. Aquí se crea la instancia de FastAPI, se
-  configuran los middlewares de CORS, se registran los routers principales y se
-  exponen endpoints de salud como /health y /db-check.
+  configura logging global (logging.basicConfig), se instancia el Limiter de
+  slowapi (identifica al cliente por IP real vía X-Forwarded-For) y se
+  registran su handler de error 429 y su middleware, se configuran los
+  middlewares de CORS, se registran los routers principales (importados
+  después del Limiter, ya que varios routers hacen "from main import
+  limiter" para decorar sus endpoints con @limiter.limit(...)) y se exponen
+  endpoints de salud como /health y /db-check.
 
 - backend/database.py
   Define la conexión a PostgreSQL, la sesión de base de datos y el patrón de
@@ -458,7 +517,10 @@ El backend está construido sobre FastAPI y SQLAlchemy, con una organización mo
   - settings.py: cálculo y acceso a la TRM
 
 - backend/middleware/
-  - auth.py: middleware y dependencias para verificar JWT y roles de usuario/admin
+  - auth.py: middleware y dependencias para verificar JWT y roles de
+    usuario/admin (get_current_user, get_current_admin); loguea en WARNING
+    los tokens inválidos/expirados y los rechazos por falta de rol admin,
+    con la IP del cliente
 
 - backend/alembic/
   Mantiene las migraciones SQL para crear y modificar tablas en PostgreSQL. Es

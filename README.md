@@ -60,6 +60,7 @@ El backend expone una API REST con **FastAPI** sobre **PostgreSQL** (SQLAlchemy 
 | Métricas de negocio | ✅ Operativo |
 | Conversión USD/COP vía TRM | ✅ Operativo |
 | Testing automatizado (backend) | ✅ ~95% cobertura |
+| Rate limiting, logging de seguridad y protección contra enumeración de usuarios | ✅ Operativo |
 
 De aquí en adelante, el trabajo sobre el repositorio consiste en **nuevas implementaciones puntuales y corrección de bugs** que se detecten en producción, no en desarrollo de funcionalidades base.
 
@@ -149,6 +150,12 @@ flowchart LR
 - Eliminado el campo legacy `ProductPage.variants` (concepto viejo de variantes por tallas/colores, distinto de la tabla `product_variants` real): confirmado muerto en ambos frontends y sin datos reales en producción, se quitó del modelo, schema y rutas, con su migración de Alembic correspondiente.
 - Integración de Google Analytics (gtag.js, `G-J3ENJRV492`) en las 19 páginas HTML del frontend.
 - Corrección de bug real: el script de Cloudflare Web Analytics se cargaba con `type='module'` en vez de `defer` (el snippet oficial de Cloudflare usa `defer`). Un script cross-origin cargado como módulo ES fuerza un fetch en modo CORS y activa comprobaciones de seguridad de módulos, lo que producía en consola errores de CORS y de integridad (SRI) — sin que existiera ningún atributo `integrity` real en el HTML — en `index.html`, `cart.html`, `admin.html`, `terminos.html`, `nosotros.html`, `product.html`, `contacto.html` y `politicas.html`. Se corrigió a `defer` en las 8 páginas.
+- **Auditoría de seguridad y set de correcciones (agosto 2026):**
+  - Rate limiting con `slowapi` en los endpoints más expuestos a abuso: `/auth/login`, `/auth/register` y `/auth/forgot-password` (5/min), `/guest/checkout` (5/min) y `/payments/checkout` (10/min), identificando la IP real del cliente vía `X-Forwarded-For` (el backend corre detrás del proxy de Railway). El webhook `/payments/bold/webhook` queda deliberadamente sin límite, porque lo llama la pasarela de pago, no un usuario.
+  - Logging estructurado (antes el proyecto no tenía ninguna configuración de logging global) para intentos de login fallidos y rechazos de acceso admin (403), con la IP del cliente — pensado para poder detectar fuerza bruta o intentos de escalar privilegios revisando los logs de Railway.
+  - Corrección de una fuga de enumeración de usuarios en `POST /auth/register`: el mensaje de error para un email ya registrado se volvió genérico (mismo patrón que ya usaba `/auth/forgot-password`), sin cambiar el status code ni el resto del flujo.
+  - Corrección de una fuga de enumeración de usuarios en `POST /guest/checkout`: la respuesta ya no revela si el email ingresado corresponde a una cuenta existente, y un checkout de invitado con un email ya registrado ya no asocia la orden a esa cuenta real sin verificar que le pertenece — queda como orden anónima (`user_id NULL`).
+  - Migración de Alembic para permitir `orders.user_id` nulo: la tabla real en Postgres lo tenía `NOT NULL` desde la migración inicial del proyecto, aunque el modelo SQLAlchemy ya lo declaraba `nullable=True` desde antes — un desfase modelo↔esquema real nunca detectado hasta este fix. Aplicada en local y en producción.
 
 ##  Stack técnico
 
@@ -164,6 +171,7 @@ flowchart LR
 | **Contenido generativo** | API de IA para bloques visuales (server-side) |
 | **Asistente de chat** | Widget propio (`js/velonox-chat-widget.js`) conectado a n8n |
 | **Analítica** | Cloudflare Web Analytics + Google Analytics (gtag.js) |
+| **Rate limiting** | slowapi (por IP, en endpoints de auth y checkout) |
 | **Infraestructura** | Railway (backend) · Cloudflare Pages (frontend) |
 
 ## 📁 Estructura del proyecto
@@ -240,7 +248,7 @@ pytest tests/test_payments.py -v           # un archivo puntual
 - **Backend** → Railway
 - **Frontend** → Cloudflare Pages ([velonox.co](https://velonox.co))
 - **Base de datos** → PostgreSQL gestionada por el entorno de ejecución del backend
-- **Seguridad** → CORS y políticas de acceso configuradas explícitamente para permitir solo los orígenes esperados
+- **Seguridad** → CORS y políticas de acceso configuradas explícitamente para permitir solo los orígenes esperados, rate limiting por IP en endpoints de auth/checkout, logging de intentos de login fallidos y rechazos de admin
 
 ## 🛠️ Mantenimiento continuo
 
