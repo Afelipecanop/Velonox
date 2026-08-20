@@ -48,16 +48,18 @@ def test_guest_checkout_new_email_creates_user_and_sends_welcome(client, sample_
     assert mock_send_email.call_count >= 1  # welcome email + confirmation email (contraentrega)
 
 
-def test_guest_checkout_existing_email_reuses_user(client, sample_product, normal_user, mock_send_email):
-    """No debe filtrar si la cuenta ya existía en la respuesta (ver auditoría de
-    agosto 2026). La orden SIGUE asociándose al user_id real de esa cuenta —
-    riesgo conocido y documentado en guest_checkout.py, no corregido porque
-    orders.user_id es NOT NULL en la DB real pese a que el modelo lo declara
-    nullable; corregirlo requiere una migración de Alembic pendiente de decisión."""
+def test_guest_checkout_existing_email_not_linked_to_account(client, sample_product, normal_user, db_session, mock_send_email):
+    """Un checkout de invitado con el email de una cuenta ya existente no debe
+    revelar que la cuenta existe ni asociar la orden a ese user_id real (nadie
+    demostró que ese correo le pertenece)."""
     resp = client.post("/guest/checkout", json=guest_payload(email=normal_user.email, product_id=sample_product.id))
     assert resp.status_code == 200
     body = resp.json()
     assert "cuenta_creada" not in body
+
+    order = db_session.query(Order).filter(Order.id == body["order_id"]).first()
+    assert order.user_id is None
+    assert order.guest_email == normal_user.email
 
 
 def test_guest_checkout_contraentrega_decrements_stock_and_confirms(client, sample_product, db_session):

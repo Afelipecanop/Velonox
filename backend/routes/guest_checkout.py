@@ -85,39 +85,34 @@ async def guest_checkout(
         total += subtotal
         order_items_data.append({"product": product, "quantity": item.quantity})
 
-    # ── 2. Buscar o crear usuario ────────────────────────────────────────────
-    # RIESGO DE SEGURIDAD CONOCIDO (no corregido a propósito, ver auditoría de
-    # agosto 2026): si el email ya corresponde a una cuenta existente, esta orden
-    # se asocia igual a ese user_id real sin verificar que quien hace el checkout
-    # sea el dueño del correo — cualquiera puede "ensuciar" el historial de
-    # pedidos de una cuenta ajena. La corrección obvia es dejar `user_id` en NULL
-    # en ese caso (la columna orders.user_id es nullable en models/order.py), pero
-    # la tabla real en Postgres todavía tiene esa columna como NOT NULL desde la
-    # migración inicial (ff0162fd9e2e_crear_tablas_iniciales.py) — nunca se migró
-    # a nullable pese a que el modelo ya lo declara así. Poner NULL aquí revienta
-    # con IntegrityError contra la DB real (confirmado manualmente). Corregirlo
-    # requiere una migración de Alembic (`ALTER COLUMN user_id DROP NOT NULL`),
-    # que no se generó ni se aplicó a propósito — pendiente de decisión.
-    user = db.query(User).filter(User.email == data.email).first()
+    # ── 2. Buscar cuenta existente o crear una nueva ─────────────────────────
+    existing_user = db.query(User).filter(User.email == data.email).first()
     cuenta_nueva = False
     temp_password = None
+    order_user_id = None
 
-    if not user:
+    if not existing_user:
         temp_password = generate_temp_password()
-        user = User(
+        new_user = User(
             email=data.email,
             full_name=data.nombre,
             hashed_password=hash_password(temp_password),
             is_active=True,
             is_admin=False
         )
-        db.add(user)
+        db.add(new_user)
         db.flush()
         cuenta_nueva = True
+        order_user_id = new_user.id
+    # Si el email ya tiene cuenta, la orden NO se asocia a ese user_id: cualquiera
+    # podría completar un checkout de invitado con el email de una cuenta ajena sin
+    # demostrar que le pertenece, y eso le agregaría pedidos que no hizo a su
+    # historial. La orden queda como invitada (user_id NULL — migración
+    # 8d33da579547, ya aplicada) igual que si ese correo nunca hubiera tenido cuenta.
 
     # ── 3. Crear la orden — mismos campos estructurados que el checkout logueado ─
     order = Order(
-        user_id=user.id,
+        user_id=order_user_id,
         status="pending",
         total_amount=total,
         payment_method=data.payment_method,
