@@ -22,7 +22,10 @@ function isLoggedIn() {
 
 async function apiFetch(endpoint, options = {}) {
     const token = getToken();
-    const headers = { "Content-Type": "application/json" };
+    // Content-Type solo cuando hay body: en un GET convierte la petición en
+    // "no simple" y el navegador hace un preflight CORS extra (~0.5s más por carga).
+    const headers = {};
+    if (options.body) headers["Content-Type"] = "application/json";
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
     const response = await fetch(`${API_URL}${endpoint}`, {
@@ -235,7 +238,10 @@ async function guestCheckout(data) {
 // ─── SISTEMA DE MONEDA ────────────────────────────────────────────────────────
 
 const VX_CURRENCY_KEY = "velonox_currency";
-let VX_TRM = 4200; // valor por defecto
+const VX_TRM_KEY = "velonox_trm";
+// Arranca con la última TRM conocida (si la hay) para poder pintar precios
+// antes de que responda el backend; loadTRM() la actualiza después.
+let VX_TRM = parseFloat(vxStorageGet(VX_TRM_KEY)) || 4200;
 let VX_CURRENCY = localStorage.getItem(VX_CURRENCY_KEY) || "COP";
 
 // Cargar TRM desde el backend al iniciar
@@ -243,10 +249,47 @@ async function loadTRM() {
     try {
         const res = await fetch(`${API_URL}/settings/trm`);
         const data = await res.json();
-        VX_TRM = data.trm;
+        if (data.trm) {
+            VX_TRM = data.trm;
+            vxStorageSet(VX_TRM_KEY, String(VX_TRM));
+        }
     } catch(e) {
-        VX_TRM = 4200; // fallback
+        // sin red: se queda con la última TRM conocida (o 4200 por defecto)
     }
+}
+
+// ─── CACHÉ LOCAL DE CONTENIDO ─────────────────────────────────────────────────
+// Guarda la última versión de bloques/productos de cada página para pintarla al
+// instante en visitas repetidas mientras llega la versión fresca del backend
+// (el plan gratis de Render tarda ~0.5s por petición). Si localStorage no está
+// disponible (modo privado, bloqueado), simplemente no hay caché.
+function vxStorageGet(key) {
+    try { return localStorage.getItem(key); } catch(e) { return null; }
+}
+function vxStorageSet(key, value) {
+    try { localStorage.setItem(key, value); } catch(e) {}
+}
+function vxCacheGet(key) {
+    try { return JSON.parse(vxStorageGet("vx_cache_" + key)); } catch(e) { return null; }
+}
+function vxCacheSet(key, value) {
+    vxStorageSet("vx_cache_" + key, JSON.stringify(value));
+}
+
+// ─── PRE-CARGA DE PETICIONES ──────────────────────────────────────────────────
+// vxPrefetch(url) lanza el GET de inmediato (p. ej. al inicio de init(), en
+// paralelo con el layout) y vxTakePrefetched(url) entrega esa misma respuesta
+// después a quien la necesite. Cada pre-carga se consume una sola vez; si no
+// hubo pre-carga, vxTakePrefetched hace un fetch normal.
+const _vxPrefetched = {};
+function vxPrefetch(url) {
+    if (!_vxPrefetched[url]) _vxPrefetched[url] = fetch(url);
+    return _vxPrefetched[url];
+}
+function vxTakePrefetched(url) {
+    const p = _vxPrefetched[url];
+    delete _vxPrefetched[url];
+    return p || fetch(url);
 }
 
 // Formatear precio según moneda activa

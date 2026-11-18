@@ -153,6 +153,26 @@
             #layout-container.loaded{animation-duration:.001ms}
         }
 
+        /* Esqueleto de carga: ocupa el lugar del hero + productos mientras llega el
+           layout la primera vez (antes solo se veía el header y fondo blanco). Se
+           oculta solo, por CSS, en cuanto #layout-container recibe contenido. */
+        #layout-container:not(:empty) + #layout-skeleton{display:none}
+        .sk-hero{background:#0F1A14;min-height:520px;padding:5rem 2rem 4rem;display:flex;flex-direction:column;justify-content:center;gap:16px}
+        .sk-line{border-radius:6px;background:linear-gradient(90deg,#1A2820 0%,#24382C 50%,#1A2820 100%);background-size:200% 100%;animation:skShimmer 1.4s ease-in-out infinite}
+        .sk-sec{padding:3rem 2rem}
+        .sk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:1.5rem}
+        .sk-card{aspect-ratio:3/4;border-radius:4px}
+        .sk-light{background:linear-gradient(90deg,#E8E6E0 0%,#F0EEE9 50%,#E8E6E0 100%);background-size:200% 100%;animation:skShimmer 1.4s ease-in-out infinite;border-radius:6px}
+        @keyframes skShimmer{from{background-position:100% 0}to{background-position:-100% 0}}
+        @media (max-width:860px){
+            .sk-hero{min-height:420px;padding:3.5rem 1.25rem 3rem}
+            .sk-sec{padding:2.5rem 1.25rem}
+            .sk-grid{grid-template-columns:repeat(2,1fr)}
+        }
+        @media (prefers-reduced-motion: reduce){
+            .sk-line,.sk-light{animation:none}
+        }
+
         /* TOAST */
         .toast{position:fixed;bottom:2rem;right:2rem;background:#0F1A14;color:#C8D8C0;padding:.75rem 1.2rem;border-radius:2px;font-size:13px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .3s;z-index:9999;pointer-events:none}
         .toast.show{opacity:1;transform:translateY(0)}
@@ -236,6 +256,24 @@
 
 <!-- Bloques del layout dinámicos -->
 <div id="layout-container"></div>
+<div id="layout-skeleton" aria-busy="true" aria-label="Cargando contenido">
+    <div class="sk-hero">
+        <div class="sk-line" style="width:120px;height:12px"></div>
+        <div class="sk-line" style="width:min(560px,90%);height:44px"></div>
+        <div class="sk-line" style="width:min(420px,75%);height:44px"></div>
+        <div class="sk-line" style="width:min(380px,80%);height:14px;margin-top:8px"></div>
+        <div class="sk-line" style="width:170px;height:46px;margin-top:16px"></div>
+    </div>
+    <div class="sk-sec">
+        <div class="sk-light" style="width:220px;height:28px"></div>
+        <div class="sk-grid">
+            <div class="sk-light sk-card"></div>
+            <div class="sk-light sk-card"></div>
+            <div class="sk-light sk-card"></div>
+            <div class="sk-light sk-card"></div>
+        </div>
+    </div>
+</div>
 
 
 <script type="module">
@@ -270,54 +308,47 @@ window.animateCards = animateCards;
         document.getElementById("nav-burger").classList.remove("open");
     }));
 
+    // Carga de la página: todas las peticiones salen EN PARALELO (antes iban en
+    // fila TRM → usuario → layout → productos, ~2-3s de pantalla en blanco con
+    // ~0.5s por petición en Render). Si hay una versión guardada de la última
+    // visita, se pinta al instante y solo se vuelve a pintar si cambió algo.
     async function init() {
-        await loadTRM();
-        updateCurrencyToggle();
-        // ── TRM ───────────────────────────────────────────────────────────────────────
-        async function loadTRMAdmin() {
-            try {
-                const data = await apiFetch("/settings/trm");
-                document.getElementById("trm-info").innerHTML =
-                    `TRM actual: <strong>1 USD = $${data.trm.toLocaleString("es-CO")} COP</strong> · Fuente: ${data.source === "auto" ? "Automática (exchangerate-api)" : "Manual"}`;
-                document.getElementById("trm-value").value = data.manual;
-                document.getElementById("trm-auto").checked = data.source === "auto";
-                document.getElementById("trm-manual-group").style.display =
-                    data.source === "auto" ? "none" : "block";
-            } catch(e) {}
-        }
-
-        function toggleTRMAuto(checked) {
-            document.getElementById("trm-manual-group").style.display = checked ? "none" : "block";
-        }
-
-        async function saveTRM() {
-            const auto = document.getElementById("trm-auto").checked;
-            const trm = parseFloat(document.getElementById("trm-value").value);
-            try {
-                await apiFetch("/settings/trm", {
-                    method: "PUT",
-                    body: JSON.stringify({ trm: trm || 4200, auto: auto })
-                });
-                showToast("TRM guardada ✅", "success");
-                loadTRMAdmin();
-            } catch(e) { showToast(e.message, "error"); }
-        }
-
-        // Cargar TRM cuando se abre el tab de ajustes
-        // Agrega loadTRMAdmin() al final del switchTab cuando tab === 'settings'
+        const trmBefore = VX_TRM;
+        const trmP = loadTRM();
+        const layoutP = fetch(`${API}/layout/`).then(r => {
+            if (!r.ok) throw new Error(`layout ${r.status}`);
+            return r.json();
+        });
+        const productsP = getProducts().catch(() => []);
 
         if (isLoggedIn()) {
             document.getElementById("nav-login").style.display = "none";
             document.getElementById("nav-logout").style.display = "block";
-            try {
-                const me = await getMe();
+            getMe().then(me => {
+                if (!me) return;
                 document.getElementById("nav-user").textContent = me.full_name.split(" ")[0];
                 if (me.is_admin) document.getElementById("nav-admin").style.display = "block";
-            } catch(e) {}
+            }).catch(() => {});
         }
         updateCartBadge();
-        await loadLayoutBlocks();
-        updateCurrencyToggle(); // el footer (con el toggle) se inyecta recién en loadLayoutBlocks()
+
+        const cached = vxCacheGet("home");
+        if (cached) renderLayout(cached.blocks, cached.products);
+        updateCurrencyToggle(); // el footer (con el toggle) se inyecta en renderLayout()
+        updateFreeShippingBadge();
+
+        try {
+            const [blocks, products] = await Promise.all([layoutP, productsP, trmP]);
+            const fresh = { blocks, products };
+            const changed = !cached
+                || JSON.stringify(cached) !== JSON.stringify(fresh)
+                || VX_TRM !== trmBefore;
+            if (changed) renderLayout(blocks, products);
+            vxCacheSet("home", fresh);
+        } catch(e) {
+            console.error("Error cargando layout:", e);
+        }
+        updateCurrencyToggle();
         updateFreeShippingBadge();
     }
 
@@ -339,14 +370,10 @@ window.animateCards = animateCards;
         }
     }
 
-    async function loadLayoutBlocks() {
+    function renderLayout(blocks, products) {
         try {
-            const response = await fetch(`${API}/layout/`);
-            const blocks = await response.json();
             const container = document.getElementById("layout-container");
             container.innerHTML = "";
-            let products = [];
-            try { products = await getProducts(); } catch(e) {}
             for (const block of blocks) {
                 if (!block.is_visible) continue;
                 const el = renderLayoutBlock(block, products);

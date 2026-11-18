@@ -273,12 +273,15 @@ async function init() {
     if (isLoggedIn()) {
         document.getElementById("nav-login").style.display = "none";
         document.getElementById("nav-logout").style.display = "block";
-        try {
-            const me = await getMe();
+        // En paralelo: no bloquea la carga del contenido de la página
+        getMe().then(me => {
+            if (!me) return;
             document.getElementById("nav-user").textContent = me.full_name.split(" ")[0];
             if (me.is_admin) document.getElementById("nav-admin").style.display = "block";
-        } catch(e) {}
+        }).catch(() => {});
     }
+    // Sets y TRM se piden en paralelo (antes los sets esperaban a la TRM)
+    vxPrefetch(API + "/categories/sets/products");
     await loadTRM();
     updateCurrencyToggle();
     loadSets();
@@ -287,7 +290,7 @@ async function init() {
 async function loadSets() {
     const grid = document.getElementById("sets-grid");
     try {
-        const res = await fetch(API + "/categories/sets/products");
+        const res = await vxTakePrefetched(API + "/categories/sets/products");
         const sets = await res.json();
 
         if (!sets.length) {

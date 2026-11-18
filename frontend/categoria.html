@@ -173,7 +173,8 @@ function getCatSlug() {
 }
 
 async function init() {
-    await loadTRM();
+    // La TRM la pide initPageBlocks() en paralelo con el layout (antes se
+    // esperaba aquí primero, bloqueando ~0.5s todo lo demás).
     updateCurrencyToggle();
     // ── TRM ───────────────────────────────────────────────────────────────────────
     async function loadTRMAdmin() {
@@ -210,17 +211,21 @@ async function init() {
     if (isLoggedIn()) {
         document.getElementById("nav-login").style.display = "none";
         document.getElementById("nav-logout").style.display = "block";
-        try {
-            const me = await getMe();
+        // En paralelo: no bloquea la carga del contenido de la página
+        getMe().then(me => {
+            if (!me) return;
             document.getElementById("nav-user").textContent = me.full_name.split(" ")[0];
             if (me.is_admin) document.getElementById("nav-admin").style.display = "block";
-        } catch(e) {}
+        }).catch(() => {});
     }
-    await initPageBlocks("catalogo");
     const slug = getCatSlug();
     if (!slug) { window.location.href = "/categorias.html"; return; }
-    await loadCategory(slug);
-    await loadProducts(slug);
+    // Datos de la categoría se piden ya, en paralelo con el layout
+    vxPrefetch(`${API}/categories/${slug}`);
+    vxPrefetch(`${API}/categories/${slug}/products`);
+    vxPrefetch(`${API}/categories/`);
+    await initPageBlocks("catalogo");
+    await Promise.all([loadCategory(slug), loadProducts(slug)]);
     loadOtherCats(slug);
 }
 function toggleNavMenu() {
@@ -236,7 +241,7 @@ document.querySelectorAll(".nav-links a").forEach(a => a.addEventListener("click
 
 async function loadCategory(slug) {
     try {
-        const res = await fetch(`${API}/categories/${slug}`);
+        const res = await vxTakePrefetched(`${API}/categories/${slug}`);
         if (!res.ok) throw new Error();
         const cat = await res.json();
         document.title = `${cat.name} — Velonox`;
@@ -251,7 +256,7 @@ async function loadCategory(slug) {
 async function loadProducts(slug) {
     const grid = document.getElementById("prod-grid");
     try {
-        const res = await fetch(`${API}/categories/${slug}/products`);
+        const res = await vxTakePrefetched(`${API}/categories/${slug}/products`);
         allProducts = await res.json();
         renderProducts(allProducts);
     } catch(e) {
@@ -307,7 +312,7 @@ function sortProducts(order) {
 
 async function loadOtherCats(currentSlug) {
     try {
-        const res = await fetch(`${API}/categories/`);
+        const res = await vxTakePrefetched(`${API}/categories/`);
         const cats = await res.json();
         const others = cats.filter(c => c.slug !== currentSlug);
         if (!others.length) return;

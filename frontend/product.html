@@ -363,7 +363,9 @@ function updateFreeShippingBadge() {
 
 // ── Inicialización ────────────────────────────────────────────────────────────
 async function init() {
-    await loadTRM();
+    // La TRM se pide en paralelo con el producto (antes lo bloqueaba ~0.5s);
+    // mientras tanto se usa la última TRM conocida guardada en el navegador.
+    const trmP = loadTRM();
     updateCurrencyToggle();
     updateFreeShippingBadge();
 
@@ -403,11 +405,12 @@ async function init() {
     if (isLoggedIn()) {
         document.getElementById("nav-login").style.display = "none";
         document.getElementById("nav-logout").style.display = "block";
-        try {
-            const me = await getMe();
+        // En paralelo: no bloquea la carga del contenido de la página
+        getMe().then(me => {
+            if (!me) return;
             document.getElementById("nav-user").textContent = me.full_name.split(" ")[0];
             if (me.is_admin) document.getElementById("nav-admin").style.display = "block";
-        } catch(e) {}
+        }).catch(() => {});
     }
 
     const productId = getProductId();
@@ -420,8 +423,10 @@ async function init() {
         // Cargar producto y configuración de página en paralelo
         const [product, page] = await Promise.all([
             getProduct(productId),
-            getProductPage(productId)
+            getProductPage(productId),
+            trmP
         ]);
+        updateFreeShippingBadge();
 
         currentProduct = product;
         currentPage = page;

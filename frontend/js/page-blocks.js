@@ -5,29 +5,50 @@
 async function initPageBlocks(slug) {
     const container = document.getElementById("layout-container");
     if (!container) return;
+
+    // TRM y layout se piden en paralelo (antes en fila). Si hay una versión
+    // guardada de la última visita se pinta al instante, y solo se vuelve a
+    // pintar si la versión fresca del backend es distinta.
+    const cacheKey = "page_" + slug;
+    const cached = vxCacheGet(cacheKey);
+    const trmBefore = VX_TRM;
+    const trmP = loadTRM();
+    const layoutP = fetch(`${API_URL}/layout/?page=${slug}`).then(r => {
+        if (!r.ok) throw new Error(`layout ${r.status}`);
+        return r.json();
+    });
+
+    if (cached) renderPageBlocksInto(container, cached);
+
     try {
-        await loadTRM();
-        const res = await fetch(`${API_URL}/layout/?page=${slug}`);
-        const blocks = await res.json();
-        container.innerHTML = blocks
-            .filter(b => b.is_visible)
-            .map(b => renderPageBlock(b))
-            .join("\n");
-
-        container.querySelectorAll("script").forEach(oldScript => {
-            const newScript = document.createElement("script");
-            for (const attr of oldScript.attributes) {
-                newScript.setAttribute(attr.name, attr.value);
-            }
-            newScript.textContent = oldScript.textContent;
-            oldScript.parentNode.replaceChild(newScript, oldScript);
-        });
-
-        // El footer (con el toggle de moneda) se inyecta recién arriba, hay que sincronizarlo
-        updateCurrencyToggle();
+        const [blocks] = await Promise.all([layoutP, trmP]);
+        const changed = !cached
+            || JSON.stringify(cached) !== JSON.stringify(blocks)
+            || VX_TRM !== trmBefore;
+        if (changed) renderPageBlocksInto(container, blocks);
+        vxCacheSet(cacheKey, blocks);
     } catch (e) {
         console.error("Error cargando contenido de la página:", e);
     }
+}
+
+function renderPageBlocksInto(container, blocks) {
+    container.innerHTML = blocks
+        .filter(b => b.is_visible)
+        .map(b => renderPageBlock(b))
+        .join("\n");
+
+    container.querySelectorAll("script").forEach(oldScript => {
+        const newScript = document.createElement("script");
+        for (const attr of oldScript.attributes) {
+            newScript.setAttribute(attr.name, attr.value);
+        }
+        newScript.textContent = oldScript.textContent;
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+    });
+
+    // El footer (con el toggle de moneda) se inyecta recién arriba, hay que sincronizarlo
+    updateCurrencyToggle();
 }
 
 function renderPageBlock(block) {

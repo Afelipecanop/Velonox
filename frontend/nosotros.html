@@ -217,11 +217,12 @@
         if (isLoggedIn()) {
             document.getElementById("nav-login").style.display = "none";
             document.getElementById("nav-logout").style.display = "block";
-            try {
-                const me = await getMe();
+            // En paralelo: no bloquea la carga del contenido de la página
+            getMe().then(me => {
+                if (!me) return;
                 document.getElementById("nav-user").textContent = me.full_name.split(" ")[0];
                 if (me.is_admin) document.getElementById("nav-admin").style.display = "block";
-            } catch(e) {}
+            }).catch(() => {});
         }
         await initPageBlocks("nosotros");
     }

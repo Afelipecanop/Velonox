@@ -145,12 +145,16 @@ async function init() {
     if (isLoggedIn()) {
         document.getElementById("nav-login").style.display = "none";
         document.getElementById("nav-logout").style.display = "block";
-        try {
-            const me = await getMe();
+        // En paralelo: no bloquea la carga del contenido de la página
+        getMe().then(me => {
+            if (!me) return;
             document.getElementById("nav-user").textContent = me.full_name.split(" ")[0];
             if (me.is_admin) document.getElementById("nav-admin").style.display = "block";
-        } catch(e) {}
+        }).catch(() => {});
     }
+    // Categorías y productos se piden ya, en paralelo con el layout
+    vxPrefetch(`${API}/categories/`);
+    vxPrefetch(`${API}/products/`);
     await initPageBlocks("categorias");
     loadCategories();
 }
@@ -169,8 +173,8 @@ async function loadCategories() {
     const grid = document.getElementById("cats-grid");
     try {
         const [catsRes, prodsRes] = await Promise.all([
-            fetch(`${API}/categories/`),
-            fetch(`${API}/products/`)
+            vxTakePrefetched(`${API}/categories/`),
+            vxTakePrefetched(`${API}/products/`)
         ]);
         const cats = await catsRes.json();
         const allProducts = await prodsRes.json();

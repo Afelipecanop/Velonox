@@ -215,7 +215,8 @@ document.querySelectorAll(".nav-links a").forEach(a => a.addEventListener("click
 }));
 
 async function init() {
-    await loadTRM();
+    // La TRM la pide initPageBlocks() en paralelo con el layout (antes se
+    // esperaba aquí primero, bloqueando ~0.5s todo lo demás).
     updateCurrencyToggle();
 
     // ── TRM ───────────────────────────────────────────────────────────────────────
@@ -253,13 +254,17 @@ async function init() {
     if (isLoggedIn()) {
         document.getElementById("nav-login").style.display = "none";
         document.getElementById("nav-logout").style.display = "block";
-        try {
-            const me = await getMe();
+        // En paralelo: no bloquea la carga del contenido de la página
+        getMe().then(me => {
+            if (!me) return;
             document.getElementById("nav-user").textContent = me.full_name.split(" ")[0];
             if (me.is_admin) document.getElementById("nav-admin").style.display = "block";
-        } catch(e) {}
+        }).catch(() => {});
     }
 
+    // Categorías y productos se piden ya, en paralelo con el layout
+    vxPrefetch(API + "/categories/");
+    vxPrefetch(API + "/products/");
     await initPageBlocks("tienda");
     setupMobileFilters();
 
@@ -267,9 +272,9 @@ async function init() {
     const catParam = params.get("cat");
     if (catParam) currentCat = catParam;
 
-    const catsRes = await fetch(API + "/categories/");
+    const catsRes = await vxTakePrefetched(API + "/categories/");
     const cats = await catsRes.json();
-    const prodsRes = await fetch(API + "/products/");
+    const prodsRes = await vxTakePrefetched(API + "/products/");
     allProducts = await prodsRes.json();
 
     document.getElementById("stat-products").textContent = allProducts.length;
