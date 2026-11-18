@@ -1,4 +1,4 @@
-const API_URL = "https://e-commerce-con-fastapi-y-postgreqsl-production.up.railway.app";
+const API_URL = "https://velonox.onrender.com";
 
 // ─── TOKEN ───────────────────────────────────────────────────────────────────
 
