@@ -16,7 +16,8 @@ uvicorn main:app --reload
 ```
 - Create a migration: `alembic revision --autogenerate -m "descripcion"` (from `backend/`, engine must be reachable via `DATABASE_URL`).
 - Apply migrations: `alembic upgrade head`.
-- Production start command (see `backend/procfile`): `alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT`.
+- Production start command (see `backend/procfile`): `python init_db.py && uvicorn main:app --host 0.0.0.0 --port $PORT`. `init_db.py` exists because the Alembic chain **cannot build an empty DB from scratch** (`categories`, `product_pages` and several `orders` columns were created by hand on the old Railway DB and never got a migration): on a DB without `alembic_version` it runs `Base.metadata.create_all()` + `alembic stamp head`; otherwise it runs `alembic upgrade head` as usual. New migrations still work normally — just don't run bare `alembic upgrade head` against a fresh DB.
+- Hosting (moved 2026-11 from Railway, which was dropped over cost): backend on **Render** (free web service, kept awake by an external cron ping to `/health`), DB on **Neon** (free Postgres, pooled connection string). Railway-specific notes below are historical.
 - There is no test suite in this repo — do not assume `pytest` or similar is configured.
 
 Frontend: static files under `frontend/`, no build/bundle step. Serve the directory with any static server (e.g. VS Code Live Server on port 5500, matched by the backend's CORS allow-list) and open the `.html` files directly.
