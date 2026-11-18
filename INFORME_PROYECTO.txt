@@ -1,6 +1,6 @@
 ﻿================================================================================
 INFORME DETALLADO DEL PROYECTO E-COMMERCE CON FASTAPI Y POSTGRESQL
-Fecha de Actualización: Agosto 19, 2026
+Fecha de Actualización: Noviembre 18, 2026
 ================================================================================
 
 1. DESCRIPCIÓN GENERAL
@@ -13,12 +13,19 @@ categorías, carrito, pagos, checkout invitado, contenido visual de la tienda,
 páginas de producto personalizadas, ajustes de configuración, métricas de negocio
 y una experiencia de compra más completa para clientes y administradores.
 
-Estado actual: Tienda finalizada y operando en producción, vendiendo activamente en
-velonox.co. Todos los módulos principales están completos y estables.
+Estado actual: Tienda finalizada y operando en producción en velonox.co. Todos los
+módulos principales están completos y estables.
+- Infraestructura (migrada en noviembre 2026): backend en Render (plan gratis),
+  base de datos PostgreSQL en Neon (plan gratis), frontend en Cloudflare Pages.
+  Railway se dio de baja por costo. La base de Neon arrancó vacía (en Railway
+  solo había productos de prueba), así que el catálogo real se está cargando
+  desde el panel admin.
 - Backend: funcional y en uso para la experiencia comercial principal
 - Frontend público: funcional y alineado con la experiencia de compra
 - Panel de administración: operativo para gestión de productos, layout y ajustes
 - Integraciones externas: activas para pagos (Bold), fulfillment (Dropi), TRM y IA
+- Widget de chat (n8n): desactivado temporalmente, porque su instancia de n8n
+  también vivía en Railway
 - Testing automatizado: suite de pytest en backend/tests/, ~95% de cobertura
   (auth, productos, categorías, carrito, pagos, checkout invitado, layout/CMS
   y métricas/ajustes; corre contra SQLite en memoria, sin tocar la base real
@@ -129,8 +136,10 @@ COMPONENTES DESTACADOS:
 - Persistencia de sesión con token de acceso
 - Menú administrativo con vistas de productos, categorías, layout, métricas y ajustes
 - Experiencia visual refinada en la página de producto y el editor de layout
-- Widget de chat (asistente virtual) embebido en las páginas comerciales, con
-  sesión de visitante persistida en el navegador
+- Carga rápida de páginas: peticiones en paralelo, caché local de la última
+  versión de cada página y esqueleto animado en la primera visita
+- Widget de chat (asistente virtual) con sesión de visitante persistida en el
+  navegador -desactivado temporalmente desde noviembre 2026-
 
 
 4. FUNCIONALIDADES IMPLEMENTADAS HASTA EL MOMENTO
@@ -172,13 +181,91 @@ COMPONENTES DESTACADOS:
 - Endpoints de salud y verificación de base de datos
 - Asistente de chat conectado a un flujo de automatización en n8n (única
   integración que el frontend llama de forma directa, sin proxy del backend,
-  ya que el webhook de n8n no maneja credenciales propias de Velonox)
+  ya que el webhook de n8n no maneja credenciales propias de Velonox).
+  DESACTIVADO desde noviembre 2026: el n8n estaba alojado en Railway. Para
+  reactivarlo hay que alojar n8n en otro lado, actualizar CONFIG.webhookUrl en
+  frontend/js/velonox-chat-widget.js y volver a poner el <script> en las páginas.
 
 4.4 NOVEDADES RECIENTES
 ------------------------------------
 Con la tienda finalizada y en producción, esta sección funciona como changelog:
 nuevas implementaciones y corrección de bugs encontrados sobre la marcha, no
 desarrollo de funcionalidades base.
+
+- MIGRACIÓN DE INFRAESTRUCTURA (noviembre 2026). Railway se dio de baja por
+  costo (estaba cobrando más de lo normal y el sitio quedó caído al no pagar el
+  plan). Como en Railway solo había productos de prueba, no se migraron datos:
+  se arrancó con una base nueva.
+  - Backend -> Render, Web Service plan Free (https://velonox.onrender.com),
+    con despliegue automático desde GitHub (main). Se descartaron Google Cloud
+    Run (no aceptó el medio de pago para la cuenta de facturación), Fly.io y
+    Oracle Cloud (piden tarjeta), Vercel (su plan gratis prohíbe uso
+    comercial) y PythonAnywhere (el plan gratis bloquea llamadas a APIs
+    externas como Bold y Resend).
+  - El plan gratis de Render duerme el servicio tras 15 minutos sin tráfico
+    (despertar tarda 30-50 s). Se resolvió con un cron externo
+    (cron-job.org) que hace GET a /health cada 10 minutos; las 750 horas
+    gratis al mes alcanzan para un servicio encendido 24/7.
+  - Base de datos -> Neon, plan Free, connection string "pooled". Se eligió
+    sobre Supabase porque Supabase pausa todo el proyecto tras 7 días sin
+    actividad y hay que reactivarlo a mano, mientras que Neon solo suspende
+    la base y despierta sola en menos de 1 segundo. Se agregó
+    pool_pre_ping=True (y pool_recycle) en database.py, porque Neon cierra las
+    conexiones inactivas al suspenderse. De paso se limpió database.py, que
+    tenía todo su contenido duplicado (engine y Base definidos dos veces).
+  - BUG REAL ENCONTRADO: la cadena de migraciones de Alembic no podía
+    construir una base vacía. Las tablas categories y product_pages, y varias
+    columnas de orders (customer_phone, department_name, city_name,
+    bold_order_id, etc.), se habían creado a mano en la base de Railway y
+    nunca quedaron en ninguna migración. Por eso "alembic upgrade head" fallaba
+    en Neon (ALTER TABLE categories ... sobre una tabla que no existía). Se
+    agregó backend/init_db.py, que es el nuevo comando de arranque: si la base
+    no tiene la tabla alembic_version (base nueva), crea todo el esquema desde
+    los modelos con Base.metadata.create_all() y la marca con "alembic stamp
+    head"; si la base ya existe, corre "alembic upgrade head" como siempre, así
+    que las migraciones futuras siguen funcionando igual. Se verificó contra
+    un Postgres 16 vacío en Docker con Python 3.11: crea las 15 tablas, el
+    segundo arranque detecta la base existente, "alembic check" no encuentra
+    diferencias entre modelos y esquema, y los 157 tests pasan.
+  - Se reemplazó la URL del backend en los 8 archivos del frontend que la
+    tenían fija (js/api.js, index, catalogo, categoria, categorias, product,
+    sets y admin) y se actualizó la URL del webhook en el panel de Bold
+    (https://velonox.onrender.com/payments/bold/webhook).
+  - El widget de chat se desactivó: se quitó su <script> de las 10 páginas
+    que lo cargaban, porque la instancia de n8n a la que llama también vivía en
+    Railway. El archivo js/velonox-chat-widget.js se conserva.
+- RENDIMIENTO DE CARGA (noviembre 2026). Síntoma: las páginas tardaban en
+  cargar y mientras tanto solo se veía el header sobre un fondo blanco. Causa:
+  Render gratis tarda ~0.5 s por petición (incluso /health, que no toca la
+  base) y las páginas encadenaban 4-5 peticiones en fila (TRM -> usuario ->
+  layout -> productos), más un preflight CORS extra en cada GET. Cambios:
+  - apiFetch() solo envía Content-Type cuando la petición lleva body. En un
+    GET convertía la petición en "no simple" y forzaba un preflight CORS.
+  - getMe() del nav ya no se espera antes de cargar el contenido en ninguna
+    página: corre en paralelo.
+  - index, catalogo, categoria, categorias, sets y product piden todo en
+    paralelo. Para los datos que se pintan después de los bloques del CMS (las
+    grillas viven dentro de bloques custom_html) se agregaron
+    vxPrefetch(url) / vxTakePrefetched(url) en js/api.js: la petición sale de
+    inmediato y la respuesta se consume después.
+  - index.html y page-blocks.js guardan en localStorage la última versión de
+    los bloques y productos de cada página, la pintan al instante en la
+    siguiente visita y solo vuelven a pintar si el backend devuelve algo
+    distinto. La TRM también se guarda, para poder mostrar precios antes de que
+    responda /settings/trm.
+  - Esqueleto animado en el home durante la primera visita, en lugar del
+    fondo blanco.
+  - Medido en navegador contra el backend real: home de ~2-3 s a ~1 s en la
+    primera visita y ~0.1 s en visitas repetidas; catálogo de ~1.3 s a ~0.7 s.
+    cart.html y checkout.html siguen esperando la TRM fresca a propósito, para
+    que el total mostrado coincida con lo que cobra Bold.
+- ORDEN DEL REPOSITORIO (noviembre 2026). Se agregó .gitattributes para
+  guardar todo el repo con saltos de línea LF. Editar en Windows dejaba ~50
+  archivos marcados como modificados sin ningún cambio real; se verificó que
+  ninguno tenía cambios de contenido antes de normalizarlos. Se sacó
+  node_modules/ del repositorio (nada lo usa: motion se carga desde CDN) y se
+  agregó al .gitignore. backend/.env.example ahora incluye RESEND_API_KEY y
+  GOOGLE_CLIENT_ID, que faltaban, y marca las variables SMTP como obsoletas.
 
 - Se integró autenticación con Google Identity Services en la página de login del frontend,
   con un endpoint backend /auth/google que valida el ID token y genera un JWT de sesión.
@@ -282,8 +369,9 @@ desarrollo de funcionalidades base.
   - Rate limiting con la librería slowapi en los endpoints más expuestos a
     abuso: /auth/login, /auth/register y /auth/forgot-password (5/minuto),
     /guest/checkout (5/minuto) y /payments/checkout (10/minuto). La IP real
-    del cliente se identifica vía el header X-Forwarded-For, ya que Railway
-    corre el backend detrás de un proxy (get_remote_address por sí solo
+    del cliente se identifica vía el header X-Forwarded-For, ya que el hosting
+    (Railway en ese momento, hoy Render) corre el backend detrás de un
+    proxy (get_remote_address por sí solo
     devolvía la IP del proxy, no la del cliente). El webhook
     /payments/bold/webhook queda deliberadamente sin límite, porque lo llama
     la pasarela de pago, no un usuario final.
@@ -293,7 +381,8 @@ desarrollo de funcionalidades base.
     contraseña) y para rechazos de autorización admin/token inválido (con
     user_id/email y la IP), sin cambiar ningún status code ni mensaje de
     error visible para el cliente. Pensado para poder detectar fuerza bruta
-    o intentos de escalar privilegios revisando los logs de Railway.
+    o intentos de escalar privilegios revisando los logs del hosting (hoy,
+    Render -> servicio -> Logs).
   - Corrección de una fuga de enumeración de usuarios en POST /auth/register:
     el mensaje de error cuando el email ya existía revelaba explícitamente
     que la cuenta estaba registrada. Se reemplazó por un mensaje genérico,
@@ -331,9 +420,12 @@ desarrollo de funcionalidades base.
 ------------------------------------
 
 El proyecto está compuesto por tres capas principales:
-- Capa de frontend: archivos estáticos HTML/CSS/JS servidos desde un hosting estático.
-- Capa de backend: API REST desarrollada con FastAPI y ejecutada mediante Uvicorn.
-- Capa de datos: base de datos PostgreSQL gestionada por el entorno de ejecución del backend.
+- Capa de frontend: archivos estáticos HTML/CSS/JS servidos desde Cloudflare Pages
+  (velonox.co).
+- Capa de backend: API REST desarrollada con FastAPI y ejecutada mediante Uvicorn,
+  alojada en Render (https://velonox.onrender.com).
+- Capa de datos: base de datos PostgreSQL en Neon, servicio independiente del
+  hosting del backend.
 
 La comunicación entre el frontend y el backend se realiza mediante peticiones HTTP
 seguras, con autenticación por token JWT y configuración de CORS para permitir el
@@ -342,37 +434,53 @@ acceso desde entornos locales y de despliegue.
 5.2 COMPONENTES DE DESPLIEGUE
 ------------------------------------
 
-Backend:
+Backend (Render, Web Service plan Free):
 - Ejecutado con Uvicorn en un entorno ASGI.
-- Configuración de arranque mediante Procfile.
-- Versión de runtime definida en runtime.txt para compatibilidad del entorno.
+- Root directory: backend. Build: pip install -r requirements.txt.
+- Arranque: python init_db.py && uvicorn main:app --host 0.0.0.0 --port $PORT.
+  El Start Command configurado en el panel de Render tiene prioridad sobre
+  backend/procfile, así que ambos deben coincidir.
+- Versión de runtime definida en runtime.txt (Python 3.11).
+- Despliegue automático en cada push a main.
 - Endpoints de salud disponibles en /health y /db-check para verificación básica.
+- Un cron externo (cron-job.org) llama a /health cada 10 minutos para que el
+  plan gratis no duerma el servicio.
 
-Frontend:
-- Estructurado como sitio estático con archivos HTML, CSS y JS.
-- Diseñado para abrirse directamente desde un navegador o desde un hosting estático.
-- Integra la API remota mediante JavaScript y variables de entorno en la lógica del cliente.
+Frontend (Cloudflare Pages):
+- Estructurado como sitio estático con archivos HTML, CSS y JS, sin build.
+- La URL del backend está fija en el código: API_URL en js/api.js y la
+  constante API de cada página HTML. Si el backend cambia de URL, hay que
+  actualizar ambos y el webhook en el panel de Bold.
 
-Base de datos:
-- PostgreSQL como motor principal.
+Base de datos (Neon, plan Free):
+- PostgreSQL como motor principal, connection string "pooled".
 - Modelos relacionales gestionados con SQLAlchemy.
-- Migraciones disponibles a través de Alembic.
+- Migraciones a través de Alembic, aplicadas al arrancar mediante init_db.py
+  (ver Novedades recientes: la cadena de migraciones no puede construir una
+  base vacía por sí sola).
 
 5.3 VARIABLES Y CONFIGURACIÓN
 ------------------------------------
 
 La aplicación depende de variables de entorno para su funcionamiento en distintos
 eventos. Entre las más importantes se encuentran:
-- DATABASE_URL: conexión a la base de datos PostgreSQL
-- SECRET_KEY: firma de tokens JWT
-- FRONTEND_URL: URL base del frontend para redirecciones y CORS
-- BOLD_API_KEY y BOLD_SECRET_KEY: acceso a la API de Bold y verificación de integridad
-- DROPI_BASE_URL y DROPI_API_KEY: integración con Dropi
+- DATABASE_URL: conexión a la base de datos PostgreSQL (Neon, "pooled")
+- SECRET_KEY, ALGORITHM y ACCESS_TOKEN_EXPIRE_MINUTES: firma y duración de JWT
+- FRONTEND_URL: URL base del frontend, usada en los links de los correos
+- BOLD_API_KEY y BOLD_SECRET_KEY: acceso a la API de Bold y verificación de
+  integridad. Deben ser las mismas (y del mismo modo, pruebas o producción)
+  que las del panel de Bold donde está configurado el webhook; si no, los
+  webhooks se rechazan y los pedidos se quedan en "pending".
+- DROPI_BASE_URL y DROPI_API_KEY: integración con Dropi (vacías por ahora)
 - ANTHROPIC_API_KEY: acceso a la integración de IA
-- SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD y SMTP_FROM: envío de correos
+- RESEND_API_KEY y EMAILS_FROM: envío de correos transaccionales vía Resend
+- GOOGLE_CLIENT_ID: login con Google
+- SMTP_*: ya no se usan (se migró a Resend porque los hostings bloquean los
+  puertos SMTP salientes)
 
-Estas variables deben configurarse de forma segura y no deben exponerse en el código
-ni en archivos compartidos públicamente.
+La plantilla está en backend/.env.example. En local se usa backend/.env
+(ignorado por git); en producción se configuran en el panel de Render. Estas
+variables no deben exponerse en el código ni en archivos compartidos.
 
 5.4 SEGURIDAD E INFRAESTRUCTURA
 ------------------------------------
@@ -394,13 +502,25 @@ La infraestructura actual contempla:
 5.5 ESTADO DE LA INFRAESTRUCTURA
 ------------------------------------
 
-La infraestructura del proyecto está definida, desplegada y operando en producción:
-el backend corre como servicio web en Railway, el frontend se sirve como contenido
-estático en Cloudflare Pages y la base de datos PostgreSQL se integra de forma
-consistente con el modelo de negocio. Posibles mejoras futuras, a implementar solo
-si surge la necesidad (no bloquean la operación actual de la tienda):
-- contenedores o Docker
-- CI/CD automatizado
+La infraestructura del proyecto está desplegada y operando en producción sin
+costo de hosting: el backend corre como Web Service gratis en Render, la base de
+datos PostgreSQL en Neon (gratis) y el frontend como contenido estático en
+Cloudflare Pages.
+
+Límites conocidos del plan gratis:
+- Cada petición al backend tarda ~0.5 s (latencia del plan). El frontend se
+  optimizó para compensarlo (ver Novedades recientes), pero bajarla requiere
+  un plan pago.
+- Render duerme el servicio sin tráfico; se mitiga con el cron a /health. Si
+  el cron falla, la primera visita después de 15 minutos tarda 30-50 s.
+- 512 MB de RAM y CPU compartida: suficiente para el volumen actual.
+
+Posibles mejoras futuras, a implementar solo si surge la necesidad (no bloquean
+la operación actual de la tienda):
+- Subdominio propio para la API (api.velonox.co) mapeado a Render, para que un
+  futuro cambio de proveedor solo requiera tocar el DNS en Cloudflare
+- Volver a alojar n8n para reactivar el widget de chat
+- CI/CD que corra la suite de pytest antes de desplegar
 - ambientes de staging y producción separados
 - monitoreo y logs más completos
 
@@ -412,7 +532,8 @@ PUNTOS FUERTES:
 - La arquitectura base está bien definida y es escalable
 - El backend expone rutas funcionales para el flujo comercial principal
 - El frontend ya cubre las experiencias clave para clientes y administradores
-- La tienda está finalizada, desplegada y vendiendo activamente en producción
+- La tienda está finalizada y desplegada en producción, ahora sobre
+  infraestructura gratuita (Render + Neon + Cloudflare Pages)
 - La integración de layout, páginas de producto, métricas, TRM y checkout invitado aporta
   valor real al negocio
 
@@ -427,9 +548,17 @@ plataforma que ya está en producción)
 - Continuar optimizando rendimiento y experiencia visual
 - Fortalecer la infraestructura con despliegue más robusto y automatizado, si aplica
 
+PENDIENTES INMEDIATOS (tras la migración de noviembre 2026):
+- Cargar el catálogo real (productos, categorías y contenido del CMS) en la
+  base nueva desde el panel admin
+- Hacer una compra de prueba completa con Bold (webhook -> pedido "paid" ->
+  correo de confirmación) y probar "olvidé mi contraseña" (Resend)
+- Revisar product.html con un producto real (no se pudo probar con la base vacía)
+- Borrar el proyecto de Railway una vez confirmado todo lo anterior
+
 ESTADO GENERAL:
 - Producción activa
-- Tienda finalizada y vendiendo
+- Tienda finalizada; catálogo en carga tras la migración
 - El repositorio evoluciona mediante nuevas implementaciones puntuales y
   corrección de bugs, no desarrollo de funcionalidades base
 
@@ -455,8 +584,10 @@ persistencia.
   arquitectura y referencias operativas.
 - alembic/: migraciones de base de datos para mantener el esquema SQLAlchemy
   alineado con PostgreSQL.
-- package.json: configuración mínima de dependencias frontend y soporte de scripts
-  de utilidad.
+- package.json: configuración mínima de dependencias frontend. node_modules/ no
+  se versiona (está en .gitignore); el sitio no lo usa, motion se carga desde CDN.
+- .gitattributes: normaliza los saltos de línea del repo a LF, para que editar
+  en Windows no marque archivos como modificados sin cambios reales.
 
 7.2 MAPA DEL BACKEND
 ------------------------------------
@@ -474,8 +605,14 @@ El backend está construido sobre FastAPI y SQLAlchemy, con una organización mo
   endpoints de salud como /health y /db-check.
 
 - backend/database.py
-  Define la conexión a PostgreSQL, la sesión de base de datos y el patrón de
-  inyección de dependencias que usan las rutas.
+  Define la conexión a PostgreSQL (con pool_pre_ping para Neon), la sesión de
+  base de datos y el patrón de inyección de dependencias que usan las rutas.
+
+- backend/init_db.py
+  Se ejecuta en cada arranque, antes de uvicorn. En una base nueva crea el
+  esquema desde los modelos y hace "alembic stamp head"; en una base existente
+  corre "alembic upgrade head". Existe porque la cadena de migraciones no puede
+  construir una base vacía desde cero.
 
 - backend/models/
   Contiene los modelos ORM que representan las tablas del negocio. Los modelos más
@@ -525,6 +662,9 @@ El backend está construido sobre FastAPI y SQLAlchemy, con una organización mo
 - backend/alembic/
   Mantiene las migraciones SQL para crear y modificar tablas en PostgreSQL. Es
   fundamental para despliegues y para mantener el estado del esquema alineado.
+  Importante: las migraciones solo sirven para evolucionar una base que ya
+  existe. Para una base vacía, usar "python init_db.py", no "alembic upgrade
+  head" directo.
 
 7.3 MAPA DEL FRONTEND
 ------------------------------------
@@ -563,7 +703,10 @@ un framework complejo.
 
 - frontend/js/api.js
   Centraliza la comunicación con la API. Aquí se define el manejo base de peticiones,
-  headers, autenticación, moneda y endpoints.
+  headers, autenticación, moneda y endpoints. También contiene los helpers de
+  rendimiento: vxCacheGet/vxCacheSet (caché en localStorage del contenido de
+  cada página), vxPrefetch/vxTakePrefetched (lanzar un GET temprano y usar su
+  respuesta después) y la TRM persistida (velonox_trm).
 
 - frontend/js/auth.js
   Lógica de sesión, registro, login y protección de vistas.
@@ -582,7 +725,8 @@ un framework complejo.
   Widget de chat auto-inicializable y sin dependencias. Se activa agregando
   un <script> antes de </body> en la página; envía los mensajes directamente
   a un webhook externo de n8n (no pasa por el backend de Velonox) y guarda un
-  identificador de sesión de visitante en localStorage.
+  identificador de sesión de visitante en localStorage. DESACTIVADO desde
+  noviembre 2026: ninguna página lo carga, porque su n8n estaba en Railway.
 
 7.4 FUNCIONES Y FLUJOS IMPORTANTES DEL NEGOCIO
 ------------------------------------
@@ -638,6 +782,12 @@ puntos más sensibles y recomendables para modificar con cuidado son:
   bloques y manejar la experiencia de administración.
 - frontend/js/api.js: cualquier cambio en la forma de llamar a la API debe integrarse
   aquí para evitar inconsistencias.
+- Rendimiento: con ~0.5 s por petición, nunca encadenar con await peticiones
+  que no dependen entre sí. Usar Promise.all o vxPrefetch, y no esperar a
+  getMe() antes de cargar el contenido.
+- frontend/index.html: el elemento <div id="layout-container"></div> debe
+  quedar exactamente así, porque admin.html lo busca y reemplaza como texto
+  para armar la vista previa del editor.
 
 7.6 CONVENCIÓN DE DESARROLLO RELEVANTE
 ------------------------------------
