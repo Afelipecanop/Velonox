@@ -1,0 +1,23 @@
+# Normaliza saltos de línea: el repo siempre guarda LF, aunque se edite en Windows.
+# Sin esto, abrir/guardar archivos en Windows (CRLF) hacía que git los marcara
+# todos como modificados sin cambios reales.
+* text=auto eol=lf
+
+# Scripts de Windows sí necesitan CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binarios: nunca tocar
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+*.dump binary
